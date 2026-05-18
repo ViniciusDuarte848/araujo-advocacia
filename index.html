@@ -296,6 +296,8 @@ tbody tr:hover td{background:var(--pink-light);}
 .doc-actions{display:flex;gap:6px;}
 .doc-btn{padding:5px 10px;border-radius:var(--border-radius-sm);font-size:11px;font-weight:500;cursor:pointer;border:1px solid var(--border-md);background:var(--white);color:var(--gray-600);font-family:var(--font-body);transition:all .12s;}
 .doc-btn:hover{background:var(--gray-100);}
+.doc-btn.view{background:#E8F4FD;color:#1565C0;border-color:#BBDEFB;}
+.doc-btn.view:hover{background:#BBDEFB;}
 .doc-btn.download{background:var(--pink-light);color:var(--pink-dark);border-color:var(--pink-mid);}
 .doc-btn.download:hover{background:var(--pink-mid);}
 .doc-btn.del{background:var(--red-light);color:var(--red);border-color:var(--red-light);}
@@ -1872,6 +1874,7 @@ async function loadDocs(casoId) {
         ${kb ? `<div class="doc-size">${kb}</div>` : ''}
       </div>
       <div class="doc-actions">
+        ${(isPdf || isImg) ? `<button class="doc-btn view" onclick="viewDoc('${casoId}','${f.name}')">👁 Ver</button>` : ''}
         <button class="doc-btn download" onclick="downloadDoc('${casoId}','${f.name}')">⬇ Baixar</button>
         <button class="doc-btn del" onclick="deleteDoc('${casoId}','${f.name}')">✕</button>
       </div>
@@ -1902,6 +1905,15 @@ function handleDocDrop(event) {
   event.preventDefault();
   document.getElementById('docs-drop-area').classList.remove('dragover');
   handleDocUpload(event.dataTransfer.files);
+}
+
+async function viewDoc(casoId, fileName) {
+  const path = 'casos/' + casoId + '/' + fileName;
+  const { data, error } = await sb.storage.from('documentos').download(path);
+  if (error) { toast('Erro ao abrir arquivo.', true); return; }
+  const url = URL.createObjectURL(data);
+  window.open(url, '_blank');
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
 }
 
 async function downloadDoc(casoId, fileName) {

@@ -255,10 +255,10 @@ tbody tr:hover td{background:var(--pink-light);}
 .notif-btn svg{width:26px;height:26px;color:var(--gray-600);}
 .notif-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:var(--pink-dark);color:#fff;border-radius:20px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--white);display:none;}
 .notif-badge.show{display:flex;}
-.notif-panel{position:absolute;top:48px;right:0;width:320px;background:var(--white);border:1px solid var(--border-md);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.15);overflow:hidden;display:none;animation:slideDown .15s ease;}
+.notif-panel{position:absolute;bottom:62px;right:0;width:320px;background:var(--white);border:1px solid var(--border-md);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.15);overflow:hidden;display:none;animation:slideUp .15s ease;}
 .notif-panel.open{display:block;}
 @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-.notif-header{padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+@keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.notif-header{padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
 .notif-header-title{font-size:13px;font-weight:600;color:var(--gray-800);}
 .notif-clear{font-size:11px;color:var(--pink-dark);cursor:pointer;background:none;border:none;font-family:var(--font-body);}
 .notif-clear:hover{text-decoration:underline;}
@@ -433,7 +433,7 @@ tbody tr:hover td{background:var(--pink-light);}
         <div class="two-col">
           <div class="card">
             <div class="card-header">
-              <span style="font-family:'Playfair Display',Georgia,serif;font-size:15px;font-weight:600;color:var(--gray-800);letter-spacing:.01em;">🗓 Calendário de Compromissos</span>
+              <span style="font-family:'Playfair Display',Georgia,serif;font-size:15px;font-weight:600;color:var(--gray-800);letter-spacing:.01em;text-transform:uppercase;width:100%;text-align:center;display:block;">🗓 Calendário de Compromissos</span>
               <button class="btn btn-sm" onclick="openNovoEvento()" style="font-size:11px;padding:4px 10px;">+ Novo</button>
             </div>
             <div class="cal-wrap">
@@ -448,7 +448,7 @@ tbody tr:hover td{background:var(--pink-light);}
             <div id="cal-popup" class="cal-popup" style="display:none"></div>
           </div>
           <div class="card">
-            <div class="card-header"><span class="card-title">casos recentes</span></div>
+            <div class="card-header"><span class="card-title" style="text-transform:uppercase;width:100%;text-align:center;display:block;">Casos Recentes</span></div>
             <div id="dash-casos"><div class="loading">carregando...</div></div>
           </div>
         </div>
@@ -609,8 +609,8 @@ tbody tr:hover td{background:var(--pink-light);}
     <input type="hidden" id="cliente-id">
     <div class="form-group"><label>Nome completo / Razão social</label><input type="text" id="cliente-nome" placeholder="Nome do cliente"></div>
     <div class="form-row">
-      <div class="form-group"><label>CPF / CNPJ</label><input type="text" id="cliente-doc" placeholder="000.000.000-00"></div>
-      <div class="form-group"><label>Telefone</label><input type="text" id="cliente-tel" placeholder="(27) 99999-0000"></div>
+      <div class="form-group"><label>CPF / CNPJ</label><input type="text" id="cliente-doc" placeholder="000.000.000-00" oninput="maskDocumento(this)" maxlength="18"></div>
+      <div class="form-group"><label>Telefone</label><input type="text" id="cliente-tel" placeholder="(27) 99999-0000" oninput="maskTelefone(this)" maxlength="15"></div>
     </div>
     <div class="form-group"><label>E-mail</label><input type="email" id="cliente-email" placeholder="cliente@email.com"></div>
     <div class="form-row">
@@ -714,7 +714,8 @@ tbody tr:hover td{background:var(--pink-light);}
 <div class="modal-backdrop" id="modal-agenda">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">Novo evento</span>
+      <span class="modal-title" id="modal-agenda-title">Novo Evento</span>
+      <input type="hidden" id="agenda-edit-id" value="">
       <button class="modal-close" onclick="closeModal('modal-agenda')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <div class="form-group"><label>Título</label><input type="text" id="agenda-titulo" placeholder="Ex: Audiência, prazo, reunião..."></div>
@@ -1234,15 +1235,36 @@ async function loadAgenda() {
         <div class="agenda-desc">${tipoLabels[ev.tipo]||ev.tipo}${ev.clientes?.nome?' · '+ev.clientes.nome:''}${ev.descricao?' · '+ev.descricao:''}</div>
       </div>
       <div class="agenda-time">${ev.horario?ev.horario.substring(0,5):'—'}</div>
+      <button class="btn btn-sm btn-icon" onclick="editAgenda('${ev.id}')" title="Editar" style="color:var(--pink-dark);margin-right:2px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
       <button class="btn btn-sm btn-icon" onclick="deleteAgenda('${ev.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
     </div>`;
   }).join('');
 }
 function openNovoEvento() {
   if (!allClientes.length) loadClientes();
+  document.getElementById('modal-agenda-title').textContent = 'Novo Evento';
+  document.getElementById('agenda-edit-id').value = '';
+  ['agenda-titulo','agenda-data','agenda-hora','agenda-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('agenda-tipo').value = 'audiencia';
+  document.getElementById('agenda-cliente').value = '';
+  openModal('modal-agenda');
+}
+async function editAgenda(id) {
+  if (!allClientes.length) await loadClientes();
+  const { data, error } = await sb.from('agenda').select('*').eq('id', id).single();
+  if (error || !data) { toast('Erro ao carregar evento.', true); return; }
+  document.getElementById('modal-agenda-title').textContent = 'Editar Evento';
+  document.getElementById('agenda-edit-id').value = id;
+  document.getElementById('agenda-titulo').value = data.titulo || '';
+  document.getElementById('agenda-data').value = data.data || '';
+  document.getElementById('agenda-hora').value = data.horario || '';
+  document.getElementById('agenda-tipo').value = data.tipo || 'audiencia';
+  document.getElementById('agenda-cliente').value = data.cliente_id || '';
+  document.getElementById('agenda-desc').value = data.descricao || '';
   openModal('modal-agenda');
 }
 async function salvarAgenda() {
+  const editId = document.getElementById('agenda-edit-id').value;
   const data = {
     titulo: document.getElementById('agenda-titulo').value.trim(),
     data: document.getElementById('agenda-data').value,
@@ -1253,10 +1275,16 @@ async function salvarAgenda() {
     user_id: currentUser.id
   };
   if (!data.titulo || !data.data) { toast('Informe título e data.', true); return; }
-  const { error } = await sb.from('agenda').insert(data);
+  let error;
+  if (editId) {
+    ({ error } = await sb.from('agenda').update(data).eq('id', editId));
+  } else {
+    ({ error } = await sb.from('agenda').insert(data));
+  }
   if (error) { toast('Erro: ' + error.message, true); return; }
-  toast('Evento salvo!'); closeModal('modal-agenda');
+  toast(editId ? 'Evento atualizado!' : 'Evento salvo!'); closeModal('modal-agenda');
   ['agenda-titulo','agenda-data','agenda-hora','agenda-desc'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('agenda-edit-id').value = '';
   loadAgenda(); loadDashboardMetrics();
 }
 async function deleteAgenda(id) {
@@ -1960,6 +1988,33 @@ async function instalarApp() {
     await deferredPrompt.userChoice;
     deferredPrompt = null;
   }
+}
+
+function maskDocumento(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length <= 11) {
+    v = v.replace(/(\d{3})(\d)/,'$1.$2');
+    v = v.replace(/(\d{3})(\d)/,'$1.$2');
+    v = v.replace(/(\d{3})(\d{1,2})$/,'$1-$2');
+  } else {
+    v = v.replace(/(\d{2})(\d)/,'$1.$2');
+    v = v.replace(/(\d{3})(\d)/,'$1.$2');
+    v = v.replace(/(\d{3})(\d)/,'$1/$2');
+    v = v.replace(/(\d{4})(\d{1,2})$/,'$1-$2');
+  }
+  el.value = v;
+}
+function maskTelefone(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length > 11) v = v.slice(0,11);
+  if (v.length > 10) {
+    v = v.replace(/(\d{2})(\d{5})(\d{4})/,'($1) $2-$3');
+  } else if (v.length > 6) {
+    v = v.replace(/(\d{2})(\d{4})(\d+)/,'($1) $2-$3');
+  } else if (v.length > 2) {
+    v = v.replace(/(\d{2})(\d+)/,'($1) $2');
+  }
+  el.value = v;
 }
 </script>
 </body>

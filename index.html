@@ -967,11 +967,25 @@ function showPage(id, el) {
   if (id === 'agenda') loadAgenda();
   if (id === 'financeiro') loadFinanceiro();
   if (id === 'links') loadLinks();
-  if (id === 'master') loadMaster();
+  if (id === 'master') {
+    if (!isMaster) { showPage('dashboard', document.querySelector('.nav-item')); return; }
+    loadMaster();
+  }
 }
 
 // ---- INIT ----
 async function initApp() {
+  // Atualizar ultimo_acesso
+  if (currentUser) {
+    await sb.from('perfis').upsert({
+      id: currentUser.id,
+      nome: currentUser.user_metadata?.nome || currentUser.email,
+      email: currentUser.email,
+      tipo: currentUser.user_metadata?.tipo || 'advogado',
+      oab: currentUser.user_metadata?.oab || '',
+      ultimo_acesso: new Date().toISOString()
+    }, { onConflict: 'id' });
+  }
   const now = new Date();
   loadNotificacoes();
   document.getElementById('dash-date').textContent = now.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
@@ -1640,7 +1654,7 @@ async function loadMaster() {
     return;
   }
   el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--gray-400);font-size:13px;">carregando...</div>';
-  const { data, error } = await sb.from('perfis').select('*').order('ultimo_acesso', { ascending: false, nullsFirst: false });
+  const { data, error } = await sb.from('perfis').select('id, nome, email, tipo, oab, ultimo_acesso, created_at').order('created_at', { ascending: false });
   if (error) { el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--gray-400);">Erro ao carregar.</div>'; return; }
   const now = new Date();
   let onlineCount = 0;

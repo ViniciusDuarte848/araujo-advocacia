@@ -1674,7 +1674,7 @@ async function loadMaster() {
       : 'Inativo desde ' + ua.toLocaleDateString('pt-BR');
     const isSelf = currentUser && u.id === currentUser.id;
     return `
-      <div onclick="openUsuario(${JSON.stringify(u).replace(/"/g,'&quot;')})" style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--pink-light)'" onmouseout="this.style.background=''"  >
+      <div onclick="openUsuarioById('${u.id}')" style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--pink-light)'" onmouseout="this.style.background=''">
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:42px;height:42px;border-radius:50%;background:var(--pink-mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--pink-dark);flex-shrink:0;">
             ${(u.nome||'?').substring(0,2).toUpperCase()}
@@ -1703,6 +1703,7 @@ async function loadMaster() {
         </div>
       </div>`;
   });
+  window._masterUsers = data || [];
   if (countEl) countEl.textContent = onlineCount + ' online agora';
   el.innerHTML = rows.length
     ? rows.join('')
@@ -2091,5 +2092,145 @@ function maskTelefone(el) {
     </div>
   </div>
 </div>
+
+<script>
+// ---- MASTER USER MODAL ----
+let muCurrentUser = null;
+
+function openUsuarioById(id) {
+  const u = (window._masterUsers || []).find(x => x.id === id);
+  if (u) openUsuario(u);
+}
+
+function openUsuario(u) {
+  muCurrentUser = u;
+  const ini = (u.nome||'?').substring(0,2).toUpperCase();
+  document.getElementById('mu-avatar').textContent = ini;
+  document.getElementById('mu-nome').textContent = u.nome || '—';
+  document.getElementById('mu-email').textContent = u.email || '—';
+  const tipoLabel = u.tipo==='master'?'👑 Master':u.tipo==='estagiario'?'📚 Estagiário':'⚖️ Advogado';
+  const tipoBg = u.tipo==='master'?'#F0EAF7':u.tipo==='estagiario'?'#FFF8E7':'#F0F9F4';
+  const tipoColor = u.tipo==='master'?'#6B4E8A':u.tipo==='estagiario'?'#B8860B':'#1D7A55';
+  document.getElementById('mu-status-badge').innerHTML = `<span style="font-size:11px;padding:2px 10px;border-radius:20px;background:${tipoBg};color:${tipoColor};font-weight:600;">${tipoLabel}</span>`;
+  document.getElementById('modal-usuario-title').textContent = u.nome || 'Usuário';
+  const ua = u.ultimo_acesso ? new Date(u.ultimo_acesso) : null;
+  const now = new Date();
+  const dm = ua ? Math.floor((now - ua)/60000) : null;
+  const online = dm !== null && dm < 15;
+  const lastSeen = !ua ? 'Nunca acessou' : online ? '🟢 Online agora' : dm < 60 ? dm+' min atrás' : dm < 1440 ? Math.floor(dm/60)+'h atrás' : ua.toLocaleDateString('pt-BR')+' às '+ua.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const criado = u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '—';
+  document.getElementById('mu-detalhes-content').innerHTML = `
+    <div style="display:grid;gap:10px;">
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-size:12px;color:var(--gray-400);">E-mail</span><span style="font-size:13px;font-weight:500;">${u.email||'—'}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-size:12px;color:var(--gray-400);">OAB</span><span style="font-size:13px;font-weight:500;">${u.oab||'—'}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-size:12px;color:var(--gray-400);">Telefone</span><span style="font-size:13px;font-weight:500;">${u.telefone||'—'}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-size:12px;color:var(--gray-400);">Último acesso</span><span style="font-size:13px;font-weight:500;">${lastSeen}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);"><span style="font-size:12px;color:var(--gray-400);">Cadastrado em</span><span style="font-size:13px;font-weight:500;">${criado}</span></div>
+      <div style="display:flex;justify-content:space-between;padding:8px 0;"><span style="font-size:12px;color:var(--gray-400);">Status</span><span style="font-size:13px;font-weight:600;color:${u.ativo===false?'var(--red)':'#1D7A55'}">${u.ativo===false?'🔴 Desativado':'🟢 Ativo'}</span></div>
+      ${u.observacao ? `<div style="padding:8px;background:var(--gray-50);border-radius:8px;font-size:12px;color:var(--gray-600);border-left:3px solid var(--pink);">📝 ${u.observacao}</div>` : ''}
+    </div>`;
+  const isSelf = currentUser && u.id === currentUser.id;
+  const btnDes = document.getElementById('mu-btn-desativar');
+  if (isSelf) { btnDes.style.display='none'; }
+  else {
+    btnDes.style.display='';
+    btnDes.textContent = u.ativo===false ? '✅ Reativar acesso' : '🚫 Desativar acesso';
+    btnDes.style.cssText = u.ativo===false ? 'font-size:12px;background:#F0F9F4;color:#1D7A55;border-color:#A8DFC3;' : 'font-size:12px;background:#FEF2F2;color:var(--red);border-color:#FECACA;';
+  }
+  document.getElementById('mu-edit-nome').value = u.nome||'';
+  document.getElementById('mu-edit-tipo').value = u.tipo||'advogado';
+  document.getElementById('mu-edit-oab').value = u.oab||'';
+  document.getElementById('mu-edit-tel').value = u.telefone||'';
+  muToggleOAB(u.tipo||'advogado');
+  document.getElementById('mu-obs-text').value = u.observacao||'';
+  muCarregarAtividade(u.id);
+  muTab('detalhes', document.querySelector('.mu-tab'));
+  openModal('modal-usuario');
+}
+
+function muTab(tab, el) {
+  document.querySelectorAll('.mu-tab-content').forEach(t => t.style.display='none');
+  document.getElementById('mu-tab-'+tab).style.display='block';
+  document.querySelectorAll('.mu-tab').forEach(t => { t.style.borderBottomColor='transparent'; t.style.color='var(--gray-400)'; });
+  if (el) { el.style.borderBottomColor='var(--pink)'; el.style.color='var(--pink-dark)'; }
+}
+
+function muToggleOAB(tipo) {
+  const g = document.getElementById('mu-edit-oab-group');
+  if (g) g.style.display = tipo==='advogado' ? 'block' : 'none';
+}
+
+async function muSalvarEdicao() {
+  if (!muCurrentUser) return;
+  const nome = document.getElementById('mu-edit-nome').value.trim();
+  const tipo = document.getElementById('mu-edit-tipo').value;
+  const oab = document.getElementById('mu-edit-oab').value.trim();
+  const telefone = document.getElementById('mu-edit-tel').value.trim();
+  const { error } = await sb.from('perfis').update({ nome, tipo, oab, telefone }).eq('id', muCurrentUser.id);
+  if (error) { toast('Erro ao salvar.', true); return; }
+  toast('Dados atualizados!');
+  closeModal('modal-usuario');
+  loadMaster();
+}
+
+async function muToggleAtivo() {
+  if (!muCurrentUser) return;
+  const novoStatus = muCurrentUser.ativo !== false;
+  const { error } = await sb.from('perfis').update({ ativo: !novoStatus }).eq('id', muCurrentUser.id);
+  if (error) { toast('Erro ao alterar status.', true); return; }
+  toast(novoStatus ? 'Acesso desativado.' : 'Acesso reativado!');
+  closeModal('modal-usuario');
+  loadMaster();
+}
+
+async function muResetSenha() {
+  if (!muCurrentUser) return;
+  const { error } = await sb.auth.resetPasswordForEmail(muCurrentUser.email, {
+    redirectTo: window.location.origin + window.location.pathname
+  });
+  if (error) { toast('Erro ao enviar e-mail.', true); return; }
+  toast('E-mail de redefinição enviado para ' + muCurrentUser.email + '!');
+}
+
+async function muCarregarAtividade(userId) {
+  const el = document.getElementById('mu-atividade-content');
+  if (!el) return;
+  el.innerHTML = '<div style="color:var(--gray-400);font-size:13px;text-align:center;padding:1rem;">Carregando...</div>';
+  const [clientes, casos, agenda, financeiro] = await Promise.all([
+    sb.from('clientes').select('id', {count:'exact',head:true}).eq('user_id', userId),
+    sb.from('casos').select('id', {count:'exact',head:true}).eq('user_id', userId),
+    sb.from('agenda').select('id', {count:'exact',head:true}).eq('user_id', userId),
+    sb.from('financeiro').select('id', {count:'exact',head:true}).eq('user_id', userId),
+  ]);
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="padding:14px;background:var(--pink-light);border-radius:10px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:var(--pink-dark);">${clientes.count||0}</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">Clientes</div>
+      </div>
+      <div style="padding:14px;background:#F0F9F4;border-radius:10px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:#1D7A55;">${casos.count||0}</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">Casos</div>
+      </div>
+      <div style="padding:14px;background:#EFF6FF;border-radius:10px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:#1565C0;">${agenda.count||0}</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">Eventos</div>
+      </div>
+      <div style="padding:14px;background:#FFF8E7;border-radius:10px;text-align:center;">
+        <div style="font-size:26px;font-weight:700;color:#B8860B;">${financeiro.count||0}</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:2px;">Financeiro</div>
+      </div>
+    </div>`;
+}
+
+async function muSalvarObs() {
+  if (!muCurrentUser) return;
+  const obs = document.getElementById('mu-obs-text').value.trim();
+  const { error } = await sb.from('perfis').update({ observacao: obs }).eq('id', muCurrentUser.id);
+  if (error) { toast('Erro ao salvar.', true); return; }
+  toast('Observação salva!');
+  muCurrentUser.observacao = obs;
+}
+</script>
 </body>
 </html>

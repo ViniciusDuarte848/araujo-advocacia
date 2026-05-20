@@ -977,14 +977,18 @@ function showPage(id, el) {
 async function initApp() {
   // Atualizar ultimo_acesso
   if (currentUser) {
-    await sb.from('perfis').upsert({
+    const meta = currentUser.user_metadata || {};
+    const nomeUser = meta.nome || currentUser.email.split('@')[0];
+    const tipoUser = meta.tipo || (MASTER_EMAILS.includes(currentUser.email) ? 'master' : 'advogado');
+    const { error: upsertErr } = await sb.from('perfis').upsert({
       id: currentUser.id,
-      nome: currentUser.user_metadata?.nome || currentUser.email,
+      nome: nomeUser,
       email: currentUser.email,
-      tipo: currentUser.user_metadata?.tipo || 'advogado',
-      oab: currentUser.user_metadata?.oab || '',
+      tipo: tipoUser,
+      oab: meta.oab || '',
       ultimo_acesso: new Date().toISOString()
     }, { onConflict: 'id' });
+    if (upsertErr) console.warn('Perfil upsert:', upsertErr.message);
   }
   const now = new Date();
   loadNotificacoes();
@@ -1690,15 +1694,12 @@ async function loadMaster() {
             <div style="width:8px;height:8px;border-radius:50%;background:${online?'#1D9E75':'#D8CED2'};flex-shrink:0;"></div>
             <span style="font-size:11px;color:var(--gray-400);">${lastSeen}</span>
           </div>
-          <span class="badge ${u.role==='master'?'badge-urgent':'badge-active'}"
-            style="${u.role==='master'?'background:#F0EAF7;color:#6B4E8A;border:1px solid #D6C9EF;':''}">
-            ${u.role==='master' ? '👑 Master' : '⚖️ Advogado'}
+          <span style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;
+            background:${u.tipo==='master'?'#F0EAF7':u.tipo==='estagiario'?'#FFF8E7':'#F0F9F4'};
+            color:${u.tipo==='master'?'#6B4E8A':u.tipo==='estagiario'?'#B8860B':'#1D7A55'};
+            border:1px solid ${u.tipo==='master'?'#D6C9EF':u.tipo==='estagiario'?'#F0DC9A':'#A8DFC3'};">
+            ${u.tipo==='master'?'👑 Master':u.tipo==='estagiario'?'📚 Estagiário':'⚖️ Advogado'}
           </span>
-          <select class="btn" style="padding:5px 10px;font-size:12px;cursor:pointer;background:var(--gray-50);"
-            onchange="mudarRole('${u.id}', this.value)" ${isSelf?'disabled title="Você não pode alterar seu próprio role"':''}>
-            <option value="advogado" ${(!u.role||u.role==='advogado')?'selected':''}>Advogado</option>
-            <option value="master" ${u.role==='master'?'selected':''}>Master</option>
-          </select>
         </div>
       </div>`;
   });

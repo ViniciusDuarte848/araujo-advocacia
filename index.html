@@ -1674,7 +1674,7 @@ async function loadMaster() {
       : 'Inativo desde ' + ua.toLocaleDateString('pt-BR');
     const isSelf = currentUser && u.id === currentUser.id;
     return `
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;">
+      <div onclick="openUsuario(${JSON.stringify(u).replace(/"/g,'&quot;')})" style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:8px;cursor:pointer;transition:background .15s;" onmouseover="this.style.background='var(--pink-light)'" onmouseout="this.style.background=''"  >
         <div style="display:flex;align-items:center;gap:12px;">
           <div style="width:42px;height:42px;border-radius:50%;background:var(--pink-mid);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--pink-dark);flex-shrink:0;">
             ${(u.nome||'?').substring(0,2).toUpperCase()}
@@ -2032,5 +2032,64 @@ function maskTelefone(el) {
   el.value = v;
 }
 </script>
+
+<!-- Modal Usuario Master -->
+<div class="modal-backdrop" id="modal-usuario">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-usuario-title">Usuário</span>
+      <button class="modal-close" onclick="closeModal('modal-usuario')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <!-- Avatar + info -->
+    <div style="display:flex;align-items:center;gap:16px;padding:1.25rem 1.5rem;background:var(--pink-light);border-bottom:1px solid var(--border);">
+      <div id="mu-avatar" style="width:56px;height:56px;border-radius:50%;background:var(--pink-mid);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--pink-dark);flex-shrink:0;"></div>
+      <div>
+        <div id="mu-nome" style="font-size:16px;font-weight:700;color:var(--gray-800);"></div>
+        <div id="mu-email" style="font-size:12px;color:var(--gray-400);"></div>
+        <div id="mu-status-badge" style="margin-top:4px;"></div>
+      </div>
+    </div>
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid var(--border);background:var(--white);">
+      <button class="mu-tab active" onclick="muTab('detalhes',this)" style="flex:1;padding:10px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid var(--pink);color:var(--pink-dark);">📋 Detalhes</button>
+      <button class="mu-tab" onclick="muTab('editar',this)" style="flex:1;padding:10px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--gray-400);">✏️ Editar</button>
+      <button class="mu-tab" onclick="muTab('atividade',this)" style="flex:1;padding:10px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--gray-400);">📊 Atividade</button>
+      <button class="mu-tab" onclick="muTab('obs',this)" style="flex:1;padding:10px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;color:var(--gray-400);">📝 Obs.</button>
+    </div>
+    <!-- Tab: Detalhes -->
+    <div id="mu-tab-detalhes" class="mu-tab-content" style="padding:1.25rem 1.5rem;">
+      <div id="mu-detalhes-content"></div>
+      <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn" onclick="muResetSenha()" style="background:#FFF8E7;color:#B8860B;border-color:#F0DC9A;font-size:12px;">🔑 Resetar senha</button>
+        <button class="btn" id="mu-btn-desativar" onclick="muToggleAtivo()" style="font-size:12px;"></button>
+      </div>
+    </div>
+    <!-- Tab: Editar -->
+    <div id="mu-tab-editar" class="mu-tab-content" style="padding:1.25rem 1.5rem;display:none;">
+      <div class="form-group"><label>Nome completo</label><input type="text" id="mu-edit-nome" class="form-control"></div>
+      <div class="form-group"><label>Função</label>
+        <select id="mu-edit-tipo" class="form-control" onchange="muToggleOAB(this.value)">
+          <option value="advogado">⚖️ Advogado(a)</option>
+          <option value="estagiario">📚 Estagiário(a)</option>
+          <option value="master">👑 Master</option>
+        </select>
+      </div>
+      <div class="form-group" id="mu-edit-oab-group"><label>Número OAB</label><input type="text" id="mu-edit-oab" class="form-control"></div>
+      <div class="form-group"><label>Telefone</label><input type="text" id="mu-edit-tel" class="form-control" oninput="maskTelefone(this)"></div>
+      <button class="btn btn-primary" onclick="muSalvarEdicao()" style="width:100%;margin-top:8px;">💾 Salvar alterações</button>
+    </div>
+    <!-- Tab: Atividade -->
+    <div id="mu-tab-atividade" class="mu-tab-content" style="padding:1.25rem 1.5rem;display:none;">
+      <div id="mu-atividade-content"></div>
+    </div>
+    <!-- Tab: Observação -->
+    <div id="mu-tab-obs" class="mu-tab-content" style="padding:1.25rem 1.5rem;display:none;">
+      <div class="form-group"><label>Observação interna</label>
+        <textarea id="mu-obs-text" class="form-control" rows="4" placeholder="Ex: Em férias até 30/06, conta temporária..."></textarea>
+      </div>
+      <button class="btn btn-primary" onclick="muSalvarObs()" style="width:100%;margin-top:8px;">💾 Salvar observação</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>

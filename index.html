@@ -206,16 +206,172 @@ tbody tr:hover td{background:var(--pink-light);}
 .parcela-line{display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12px;border-bottom:1px solid var(--border);}
 .parcela-line:last-child{border-bottom:none;}
 
+/* ===== MOBILE / TABLET OPTIMIZATION ===== */
+
+/* Tablet landscape */
+@media(max-width:1024px){
+  .sidebar{width:180px;}
+  .main{padding:1.25rem;}
+  .metrics{grid-template-columns:repeat(2,1fr);}
+  .two-col{grid-template-columns:1fr 1fr;}
+  .modal{max-width:90vw;}
+}
+
+/* Tablet portrait */
 @media(max-width:768px){
+  /* --- Layout --- */
+  .layout{flex-direction:column;}
+  .main{padding:1rem;padding-bottom:80px;} /* espaço para bottom-nav */
+
+  /* --- Sidebar vira bottom-nav no mobile --- */
+  .sidebar{
+    width:100%;
+    height:64px;
+    position:fixed;
+    bottom:0;left:0;right:0;top:auto;
+    flex-direction:row;
+    border-right:none;
+    border-top:1px solid var(--border);
+    z-index:1000;
+    box-shadow:0 -2px 16px rgba(180,120,140,.12);
+    background:var(--white);
+  }
+  .sidebar-brand{display:none;}
+  .sidebar-nav{
+    flex:1;
+    flex-direction:row;
+    padding:0;
+    gap:0;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .sidebar-nav::-webkit-scrollbar{display:none;}
+  .nav-item{
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:6px 12px;
+    border-left:none;
+    border-top:2px solid transparent;
+    font-size:10px;
+    gap:3px;
+    flex-shrink:0;
+    min-width:60px;
+  }
+  .nav-item span{
+    display:block;
+    font-size:10px;
+    white-space:nowrap;
+  }
+  .nav-item.active{
+    border-top-color:var(--pink);
+    border-left-color:transparent;
+  }
+  .nav-item svg{width:20px;height:20px;}
+  .sidebar-footer{display:none;}
+
+  /* --- Botão menu hamburger visível --- */
+  #menu-toggle{display:flex!important;}
+
+  /* --- Overlay sidebar --- */
+  #sidebar-overlay{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.4);
+    z-index:999;
+  }
+
+  /* --- Topbar mobile --- */
+  .mobile-topbar{
+    display:flex!important;
+    align-items:center;
+    justify-content:space-between;
+    padding:.75rem 1rem;
+    background:var(--white);
+    border-bottom:1px solid var(--border);
+    position:sticky;top:0;z-index:50;
+  }
+
+  /* --- Grids --- */
+  .metrics{grid-template-columns:repeat(2,1fr);gap:8px;}
   .two-col{grid-template-columns:1fr;}
   .form-row{grid-template-columns:1fr;}
-  .main{padding:1rem;}
-  .sidebar{width:56px;}
-  .sidebar-brand,.brand-name,.brand-tag,.nav-item span,.user-name,.user-role,.logout-btn{display:none;}
-  .nav-item{justify-content:center;padding:12px;}
-  .sidebar-footer{padding:0.75rem;}
-  .user-avatar{margin:0 auto;}
+
+  /* --- Cards e tabelas --- */
+  .card-header{flex-wrap:wrap;gap:8px;}
+  .card-header .btn{font-size:12px;padding:6px 10px;}
+
+  /* --- Tabelas scrolláveis --- */
+  .card{overflow:hidden;}
+  .card > div > table,
+  .table-wrap{
+    display:block;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+    width:100%;
+  }
+  table{min-width:520px;}
+  th,td{padding:10px .75rem;font-size:12px;}
+
+  /* --- Page header --- */
+  .page-header{flex-wrap:wrap;gap:8px;margin-bottom:1rem;}
+  .page-title{font-size:18px;}
+
+  /* --- Modal --- */
+  .modal-backdrop{align-items:flex-end;}
+  .modal{
+    width:100%!important;
+    max-width:100%!important;
+    border-radius:20px 20px 0 0;
+    padding:1.25rem 1rem 2rem;
+    max-height:92vh;
+  }
+  .modal-footer{flex-direction:column;}
+  .modal-footer .btn{width:100%;justify-content:center;}
+
+  /* --- Filtros financeiros com scroll horizontal --- */
+  .filtro-bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:4px;}
+  .filtro-bar::-webkit-scrollbar{display:none;}
+  .filtro-bar select,.filtro-bar button,.filtro-btn{flex-shrink:0;}
+
+  /* --- Agenda items --- */
+  .agenda-item{gap:.75rem;padding:10px .75rem;}
+  .agenda-time{font-size:11px;}
+
+  /* --- Fin rows --- */
+  .fin-row{flex-wrap:wrap;gap:6px;padding:10px .75rem;}
+  .fin-right{width:100%;justify-content:space-between;}
+
+  /* --- Toast --- */
+  #toast{bottom:80px;right:1rem;left:1rem;text-align:center;}
+
+  /* --- Notificações --- */
+  .notif-wrapper{bottom:80px;right:16px;}
+  .notif-panel{width:calc(100vw - 32px);right:0;bottom:62px;}
+
+  /* --- Métricas em 2 colunas compactas --- */
+  .metric{padding:.75rem 1rem;}
+  .metric-value{font-size:22px;}
+
+  /* --- Search input --- */
+  .search-input{width:100%;}
+
+  /* --- Page header actions wrap --- */
+  .page-header > div:last-child{width:100%;display:flex;gap:8px;flex-wrap:wrap;}
 }
+
+/* Mobile pequeno */
+@media(max-width:480px){
+  .metrics{grid-template-columns:1fr 1fr;}
+  .auth-card{padding:1.5rem 1rem!important;margin:1rem;}
+  .metric-value{font-size:20px;}
+  .page-title{font-size:16px;}
+  .nav-item{min-width:52px;padding:6px 8px;}
+  .nav-item span{font-size:9px;}
+  table{min-width:440px;}
+}
+/* ===== FIM MOBILE / TABLET ===== */
 
 /* ===== CALENDÁRIO ===== */
 .cal-wrap{padding:.75rem 1rem 0;}
@@ -306,27 +462,9 @@ tbody tr:hover td{background:var(--pink-light);}
 .upload-progress-bar{height:100%;background:var(--pink);border-radius:2px;transition:width .3s;}
 
 
-@media (max-width: 768px) {
-  .sidebar { position: fixed; left: -220px; top: 0; height: 100vh; z-index: 1000; transition: left .3s; box-shadow: 2px 0 20px rgba(0,0,0,.1); }
-  .sidebar.open { left: 0; }
-  .main-content { margin-left: 0 !important; padding: 16px !important; }
-  .app-layout { flex-direction: column; }
-  .page-header { flex-wrap: wrap; gap: 8px; padding: 0 0 16px; }
-  .page-header h1 { font-size: 20px; }
-  .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 10px; }
-  .dashboard-grid { grid-template-columns: 1fr !important; }
-  .table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .modal { width: 95vw !important; max-width: 95vw !important; margin: 10px; max-height: 90vh; overflow-y: auto; }
-  .form-row { flex-direction: column !important; }
-  .notif-wrapper { bottom: 16px; right: 16px; }
-  .nav-item span { font-size: 13px; }
-  #menu-toggle { display: flex !important; }
-  .sidebar-overlay { display: block; }
-}
-@media (max-width: 480px) {
-  .stats-grid { grid-template-columns: 1fr !important; }
-  .auth-card { padding: 1.5rem 1rem !important; }
-}
+/* Mobile topbar - hidden on desktop */
+.mobile-topbar{display:none;}
+
 </style>
 </head>
 <body>
@@ -371,6 +509,18 @@ tbody tr:hover td{background:var(--pink-light);}
 
 <!-- APP -->
 <div id="app">
+
+<!-- TOPBAR MOBILE -->
+<div class="mobile-topbar" id="mobile-topbar">
+  <img src="" id="topbar-logo" alt="Araujo Advocacia" style="height:32px;display:none;">
+  <span style="font-family:var(--font-display);font-size:15px;color:var(--pink-dark);font-weight:600;">Araujo Advocacia</span>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div class="user-avatar" id="topbar-avatar" onclick="openModal('modal-perfil')" style="cursor:pointer;" title="Meu perfil">AA</div>
+  </div>
+</div>
+
+<!-- OVERLAY SIDEBAR -->
+<div id="sidebar-overlay" onclick="closeSidebarOverlay()"></div>
 
 <!-- SINO DE NOTIFICAÇÃO -->
 <div class="notif-wrapper">
@@ -501,10 +651,12 @@ tbody tr:hover td{background:var(--pink-light);}
           </div>
         </div>
         <div class="card">
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
           <table>
             <thead><tr><th>nome</th><th>cpf/cnpj</th><th>telefone</th><th>e-mail</th><th>status</th><th></th></tr></thead>
             <tbody id="tb-clientes"><tr><td colspan="6" class="loading">carregando...</td></tr></tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -518,10 +670,12 @@ tbody tr:hover td{background:var(--pink-light);}
           </button>
         </div>
         <div class="card">
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
           <table>
             <thead><tr><th>nº processo</th><th>cliente</th><th>área</th><th>vara</th><th>próx. prazo</th><th>status</th><th></th></tr></thead>
             <tbody id="tb-casos"><tr><td colspan="7" class="loading">carregando...</td></tr></tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -2297,15 +2451,39 @@ async function confirmarNovaSenha() {
 function toggleSidebar() {
   const sidebar = document.querySelector('.sidebar');
   const overlay = document.getElementById('sidebar-overlay');
-  sidebar.classList.toggle('open');
-  overlay.style.display = sidebar.classList.contains('open') ? 'block' : 'none';
+  if (sidebar) sidebar.classList.toggle('open');
+  if (overlay) overlay.style.display = sidebar && sidebar.classList.contains('open') ? 'block' : 'none';
 }
-// Show menu toggle on mobile
+
+function closeSidebarOverlay() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.style.display = 'none';
+}
+
 function checkMobile() {
   const btn = document.getElementById('menu-toggle');
-  if (btn) btn.style.display = window.innerWidth <= 768 ? 'flex' : 'none';
+  const topbar = document.getElementById('mobile-topbar');
+  const isMobile = window.innerWidth <= 768;
+
+  if (btn) btn.style.display = isMobile ? 'flex' : 'none';
+  if (topbar) topbar.style.display = isMobile ? 'flex' : 'none';
+
+  // Sync avatar inicial no topbar
+  const mainAvatar = document.getElementById('user-avatar');
+  const topbarAvatar = document.getElementById('topbar-avatar');
+  if (mainAvatar && topbarAvatar) {
+    topbarAvatar.textContent = mainAvatar.textContent || 'AA';
+    topbarAvatar.style.cssText = mainAvatar.style.cssText;
+  }
+
   const overlay = document.getElementById('sidebar-overlay');
-  if (overlay && window.innerWidth > 768) { overlay.style.display='none'; document.querySelector('.sidebar').classList.remove('open'); }
+  if (overlay && window.innerWidth > 768) {
+    overlay.style.display = 'none';
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar) sidebar.classList.remove('open');
+  }
 }
 window.addEventListener('resize', checkMobile);
 window.addEventListener('DOMContentLoaded', checkMobile);

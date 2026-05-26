@@ -207,59 +207,69 @@ tbody tr:hover td{background:var(--pink-light);}
 .parcela-line:last-child{border-bottom:none;}
 
 /* ===== MOBILE HEADER ===== */
-.mob-header{display:none;position:sticky;top:0;z-index:600;background:var(--white);border-bottom:1px solid var(--border);padding:10px 16px;align-items:center;justify-content:space-between;gap:10px;}
+.mob-header{display:none;position:sticky;top:0;z-index:600;background:var(--white);border-bottom:1px solid var(--border);padding:0 16px;height:56px;align-items:center;justify-content:space-between;gap:8px;}
 .mob-brand{font-family:var(--font-display);font-size:16px;color:var(--pink-dark);flex:1;text-align:center;}
-.mob-menu-btn{background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;}
-.mob-menu-btn svg{width:22px;height:22px;color:var(--gray-600);}
-.mob-right{display:flex;align-items:center;gap:8px;}
-.mob-avatar{width:34px;height:34px;border-radius:50%;background:var(--pink-mid);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--pink-dark);cursor:pointer;flex-shrink:0;}
-.mob-notif{position:relative;width:36px;height:36px;border-radius:50%;background:var(--pink-light);border:1px solid var(--pink-mid);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
-.mob-notif svg{width:18px;height:18px;color:var(--pink-dark);}
-.mob-notif-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;background:var(--pink-dark);color:#fff;border-radius:20px;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--white);}
-.mob-notif-badge.show{display:flex;}
+.mob-icon-btn{background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;}
+.mob-icon-btn svg{width:22px;height:22px;color:var(--gray-600);}
+.mob-avatar{width:34px;height:34px;border-radius:50%;background:var(--pink-mid);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--pink-dark);cursor:pointer;flex-shrink:0;border:none;}
+.mob-notif-btn{position:relative;width:36px;height:36px;border-radius:50%;background:var(--pink-light);border:1px solid var(--pink-mid);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+.mob-notif-btn svg{width:18px;height:18px;color:var(--pink-dark);}
+.mob-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;background:var(--pink-dark);color:#fff;border-radius:20px;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--white);}
+.mob-badge.show{display:flex;}
 
 /* ===== BOTTOM NAV ===== */
-.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:600;background:var(--white);border-top:1px solid var(--border);padding:4px 0 max(8px,env(safe-area-inset-bottom));}
-.bottom-nav-inner{display:flex;align-items:stretch;justify-content:space-around;}
-.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px 4px;cursor:pointer;color:var(--gray-400);transition:color .15s;border:none;background:none;font-family:var(--font-body);}
-.bnav-item.active{color:var(--pink-dark);}
-.bnav-item svg{width:21px;height:21px;flex-shrink:0;}
-.bnav-item span{font-size:9px;font-weight:500;white-space:nowrap;}
+.bnav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:600;background:var(--white);border-top:1px solid var(--border);}
+.bnav-inner{display:flex;align-items:stretch;}
+.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px 10px;cursor:pointer;color:var(--gray-400);background:none;border:none;font-family:var(--font-body);transition:color .15s;}
+.bnav-btn.active{color:var(--pink-dark);}
+.bnav-btn svg{width:20px;height:20px;}
+.bnav-btn span{font-size:9px;font-weight:500;}
 
-/* ===== SIDEBAR OVERLAY ===== */
-.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:650;}
+/* ===== OVERLAY ===== */
+#mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:650;}
 
-/* ===== MOBILE RESPONSIVE ===== */
+/* ===== FILTRO MESES (scroll horizontal no mobile) ===== */
+@media(max-width:768px){
+  .filtro-bar{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:6px;gap:6px;}
+  .filtro-bar::-webkit-scrollbar{height:3px;}
+  .filtro-bar::-webkit-scrollbar-thumb{background:var(--pink-mid);border-radius:3px;}
+  .filtro-btn{flex-shrink:0;padding:6px 10px;font-size:12px;}
+  .filtro-bar select{flex-shrink:0;}
+}
+
+/* ===== MAIN MOBILE ===== */
 @media(max-width:768px){
   .mob-header{display:flex;}
-  .bottom-nav{display:block;}
-  .notif-wrapper{display:none;}
+  .bnav{display:block;}
+  .notif-wrapper{display:none!important;}
+  /* Sidebar escondida fora da tela */
   .sidebar{
     position:fixed!important;
     left:-260px!important;
-    top:0;width:240px!important;height:100vh;
+    width:240px!important;
+    top:0;height:100vh;
     z-index:700;
     transition:left .25s ease;
-    box-shadow:none;
-    overflow-y:auto;
+    /* garantir que itens aparecem */
+    display:flex!important;
+    flex-direction:column;
   }
-  .sidebar.mob-open{left:0!important;box-shadow:4px 0 30px rgba(0,0,0,.18);}
-  .sidebar-brand{display:flex!important;}
+  .sidebar.mob-open{left:0!important;box-shadow:4px 0 24px rgba(0,0,0,.18);}
+  /* Mostrar tudo no sidebar quando aberto */
+  .sidebar-brand{display:flex!important;flex-direction:column;align-items:center;}
   .brand-name{display:block!important;}
   .brand-tag{display:block!important;}
-  .nav-item{display:flex!important;justify-content:flex-start!important;padding:10px 1.25rem!important;}
+  .nav-item{display:flex!important;align-items:center;justify-content:flex-start!important;padding:10px 1.25rem!important;}
   .nav-item span{display:inline!important;}
   .sidebar-footer{display:block!important;}
-  .user-name{display:block!important;}
-  .user-role{display:block!important;}
-  .logout-btn{display:block!important;}
+  .user-name,.user-role,.logout-btn{display:block!important;}
   .user-avatar{margin:0!important;}
+  /* Layout: sidebar não empurra o main */
   .layout{display:block!important;}
-  .main{padding:1rem;padding-bottom:75px;}
+  .main{padding:1rem;padding-bottom:72px;margin-left:0!important;}
   .two-col{grid-template-columns:1fr;}
   .form-row{grid-template-columns:1fr;}
-  .modal{width:95vw!important;max-width:95vw!important;margin:10px auto;}
-  .notif-panel{right:auto;left:10px;right:10px;width:auto;}
+  .modal{width:95vw!important;max-width:95vw!important;}
 }
 
 /* ===== CALENDÁRIO ===== */
@@ -399,52 +409,52 @@ tbody tr:hover td{background:var(--pink-light);}
 <!-- APP -->
 <div id="app">
 
-<!-- OVERLAY SIDEBAR MOBILE -->
-<div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+<!-- OVERLAY MOBILE -->
+<div id="mob-overlay" onclick="mobCloseSidebar()"></div>
 
 <!-- MOBILE HEADER -->
-<header class="mob-header" id="mob-header">
-  <button class="mob-menu-btn" onclick="toggleSidebar()" aria-label="Menu">
+<header class="mob-header">
+  <button class="mob-icon-btn" onclick="mobToggleSidebar()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
   </button>
   <span class="mob-brand">Araujo Advocacia</span>
-  <div class="mob-right">
-    <div class="mob-avatar" id="mob-avatar" onclick="openModal('modal-perfil')">AA</div>
-    <div class="mob-notif" onclick="toggleNotif()">
+  <div style="display:flex;align-items:center;gap:8px;">
+    <button class="mob-avatar" id="mob-avatar-btn" onclick="openModal('modal-perfil')">AA</button>
+    <div class="mob-notif-btn" onclick="toggleNotif()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-      <span class="mob-notif-badge" id="mob-notif-badge"></span>
+      <span class="mob-badge" id="mob-notif-badge"></span>
     </div>
   </div>
 </header>
 
 <!-- BOTTOM NAV -->
-<nav class="bottom-nav" id="bottom-nav">
-  <div class="bottom-nav-inner">
-    <button class="bnav-item active" id="bnav-dashboard" onclick="showPage('dashboard',null);bnavSet('dashboard')">
+<nav class="bnav">
+  <div class="bnav-inner">
+    <button class="bnav-btn active" id="bnav-dashboard" onclick="mobNav('dashboard')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       <span>Dashboard</span>
     </button>
-    <button class="bnav-item" id="bnav-clientes" onclick="showPage('clientes',null);bnavSet('clientes')">
+    <button class="bnav-btn" id="bnav-clientes" onclick="mobNav('clientes')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Clientes</span>
     </button>
-    <button class="bnav-item" id="bnav-casos" onclick="showPage('casos',null);bnavSet('casos')">
+    <button class="bnav-btn" id="bnav-casos" onclick="mobNav('casos')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
       <span>Casos</span>
     </button>
-    <button class="bnav-item" id="bnav-agenda" onclick="showPage('agenda',null);bnavSet('agenda')">
+    <button class="bnav-btn" id="bnav-agenda" onclick="mobNav('agenda')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
       <span>Agenda</span>
     </button>
-    <button class="bnav-item" id="bnav-financeiro" onclick="showPage('financeiro',null);bnavSet('financeiro')">
+    <button class="bnav-btn" id="bnav-financeiro" onclick="mobNav('financeiro')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
       <span>Financeiro</span>
     </button>
-    <button class="bnav-item" id="bnav-links" onclick="showPage('links',null);bnavSet('links')">
+    <button class="bnav-btn" id="bnav-links" onclick="mobNav('links')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
       <span>Links</span>
     </button>
-    <button class="bnav-item" id="bnav-master" style="display:none" onclick="showPage('master',null);bnavSet('master')">
+    <button class="bnav-btn" id="bnav-master" style="display:none" onclick="mobNav('master')">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       <span>Master</span>
     </button>
@@ -1781,7 +1791,7 @@ async function loadMaster() {
     return;
   }
   el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--gray-400);font-size:13px;">carregando...</div>';
-  const { data, error } = await sb.from('perfis').select('id, nome, email, tipo, oab, ultimo_acesso, created_at').order('created_at', { ascending: false });
+  const { data, error } = await sb.from('perfis').select('id, nome, email, tipo, oab, telefone, ultimo_acesso, created_at, ativo, observacao').order('created_at', { ascending: false });
   if (error) { el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--gray-400);">Erro ao carregar.</div>'; return; }
   const now = new Date();
   let onlineCount = 0;
@@ -2186,7 +2196,7 @@ function maskTelefone(el) {
       <div style="margin-top:1rem;display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn" onclick="muResetSenha()" style="background:#FFF8E7;color:#B8860B;border-color:#F0DC9A;font-size:12px;">🔑 Resetar senha</button>
         <button class="btn" id="mu-btn-desativar" onclick="muToggleAtivo()" style="font-size:12px;"></button>
-        <button class="btn" id="mu-btn-excluir" onclick="muExcluirUsuario()" style="font-size:12px;background:#FEF2F2;color:var(--red);border-color:#FECACA;">🗑 Excluir usuário</button>
+        <button class="btn" id="mu-btn-excluir" onclick="muExcluirUsuario()" style="font-size:12px;background:#FEF2F2;color:var(--red);border-color:#FECACA;">🗑 Excluir</button>
       </div>
     </div>
     <!-- Tab: Editar -->
@@ -2255,13 +2265,16 @@ function openUsuario(u) {
     </div>`;
   const isSelf = currentUser && u.id === currentUser.id;
   const btnDes = document.getElementById('mu-btn-desativar');
-  const btnExcluir = document.getElementById('mu-btn-excluir');
-  if (isSelf) { btnDes.style.display='none'; if(btnExcluir) btnExcluir.style.display='none'; }
-  else {
+  const btnExc = document.getElementById('mu-btn-excluir');
+  if (isSelf) {
+    btnDes.style.display='none';
+    if(btnExc) btnExc.style.display='none';
+  } else {
     btnDes.style.display='';
     btnDes.textContent = u.ativo===false ? '✅ Reativar acesso' : '🚫 Desativar acesso';
     btnDes.style.cssText = u.ativo===false ? 'font-size:12px;background:#F0F9F4;color:#1D7A55;border-color:#A8DFC3;' : 'font-size:12px;background:#FEF2F2;color:var(--red);border-color:#FECACA;';
-    if(btnExcluir) btnExcluir.style.display='';
+    if(btnExc) btnExc.style.cssText='font-size:12px;background:#FEF2F2;color:var(--red);border-color:#FECACA;';
+    if(btnExc) btnExc.style.display='';
   }
   document.getElementById('mu-edit-nome').value = u.nome||'';
   document.getElementById('mu-edit-tipo').value = u.tipo||'advogado';
@@ -2306,23 +2319,6 @@ async function muToggleAtivo() {
   if (error) { toast('Erro: ' + error.message, true); return; }
   muCurrentUser.ativo = !novoStatus;
   toast(novoStatus ? '🚫 Acesso desativado!' : '✅ Acesso reativado!');
-  closeModal('modal-usuario');
-  loadMaster();
-}
-
-async function muExcluirUsuario() {
-  if (!muCurrentUser) return;
-  const nome = muCurrentUser.nome || muCurrentUser.email || 'este usuário';
-  if (!confirm(`⚠️ Tem certeza que deseja EXCLUIR permanentemente "${nome}"?\n\nEsta ação não pode ser desfeita. Todos os dados do usuário serão removidos.`)) return;
-  if (!confirm(`Confirme novamente: excluir "${nome}" permanentemente?`)) return;
-  // Remove da tabela perfis
-  const { error: errPerfil } = await sb.from('perfis').delete().eq('id', muCurrentUser.id);
-  if (errPerfil) { toast('Erro ao excluir perfil: ' + errPerfil.message, true); return; }
-  // Tenta remover do auth (só funciona se tiver permissão de admin no Supabase)
-  try {
-    await sb.auth.admin?.deleteUser(muCurrentUser.id);
-  } catch(e) { /* silencia se não tiver admin */ }
-  toast('✅ Usuário excluído com sucesso!');
   closeModal('modal-usuario');
   loadMaster();
 }
@@ -2395,67 +2391,93 @@ async function confirmarNovaSenha() {
 
 }
 
-// ===== MOBILE FUNCTIONS =====
-function toggleSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  const isOpen = sidebar.classList.contains('mob-open');
-  if (isOpen) {
-    sidebar.classList.remove('mob-open');
-    overlay.style.display = 'none';
+// ===================================================
+// MOBILE FUNCTIONS
+// ===================================================
+function mobToggleSidebar() {
+  const sb = document.querySelector('.sidebar');
+  const ov = document.getElementById('mob-overlay');
+  if (sb.classList.contains('mob-open')) {
+    sb.classList.remove('mob-open');
+    ov.style.display = 'none';
   } else {
-    sidebar.classList.add('mob-open');
-    overlay.style.display = 'block';
+    sb.classList.add('mob-open');
+    ov.style.display = 'block';
   }
 }
-function closeSidebar() {
-  const sidebar = document.querySelector('.sidebar');
-  const overlay = document.getElementById('sidebar-overlay');
-  sidebar.classList.remove('mob-open');
-  overlay.style.display = 'none';
+function mobCloseSidebar() {
+  document.querySelector('.sidebar').classList.remove('mob-open');
+  document.getElementById('mob-overlay').style.display = 'none';
 }
 
-function bnavSet(page) {
-  document.querySelectorAll('.bnav-item').forEach(el => el.classList.remove('active'));
-  const el = document.getElementById('bnav-' + page);
-  if (el) el.classList.add('active');
+// Navegar pelo bottom nav — chama o showPage original e sincroniza o badge
+function mobNav(page) {
+  // Chama o showPage original passando null como elemento (não precisa de nav-item)
+  showPage(page, null);
+  // Atualizar badge ativo no bottom nav
+  document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('bnav-' + page);
+  if (btn) btn.classList.add('active');
+  // Fechar sidebar se estiver aberta
+  mobCloseSidebar();
 }
 
-// Sincronizar badge do sino no mobile
-function syncMobBadge() {
+// Sincronizar badge do sino (desktop → mobile)
+setInterval(function() {
   const src = document.getElementById('notif-badge');
   const dst = document.getElementById('mob-notif-badge');
   if (!src || !dst) return;
-  const show = src.classList.contains('show');
   dst.textContent = src.textContent;
-  dst.style.display = show ? 'flex' : 'none';
-}
-setInterval(syncMobBadge, 800);
+  if (src.classList.contains('show')) dst.classList.add('show');
+  else dst.classList.remove('show');
+}, 500);
 
 // Sincronizar avatar mobile com o do sidebar
-function syncMobAvatar() {
+setTimeout(function() {
   const src = document.getElementById('user-avatar');
-  const dst = document.getElementById('mob-avatar');
+  const dst = document.getElementById('mob-avatar-btn');
   if (src && dst) dst.textContent = src.textContent;
-}
-setTimeout(syncMobAvatar, 1500);
+}, 1500);
 
-// Mostrar Master no bottom nav se for master
-function checkMasterBnav() {
-  const nav = document.getElementById('nav-master-item');
-  const btn = document.getElementById('bnav-master');
-  if (nav && btn && nav.style.display !== 'none') btn.style.display = 'flex';
-}
-setTimeout(checkMasterBnav, 2000);
+// Mostrar botão Master no bottom nav se o usuário for master
+setTimeout(function() {
+  const navItem = document.getElementById('nav-master-item');
+  const bnavMaster = document.getElementById('bnav-master');
+  if (navItem && bnavMaster && navItem.style.display !== 'none') {
+    bnavMaster.style.display = 'flex';
+  }
+}, 2500);
 
-// Fechar sidebar ao navegar no mobile
-const _origShowPage = window.showPage;
-if (typeof showPage === 'function') {
-  const _sp = showPage;
-  window.showPage = function(page, el) {
-    _sp(page, el);
-    if (window.innerWidth <= 768) closeSidebar();
-  };
+// Interceptar cliques nos nav-items do sidebar para sincronizar o bottom nav
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      // Detectar qual página foi clicada pelo onclick
+      const onclick = item.getAttribute('onclick') || '';
+      const match = onclick.match(/showPage\('(\w+)'/);
+      if (match) {
+        document.querySelectorAll('.bnav-btn').forEach(b => b.classList.remove('active'));
+        const btn = document.getElementById('bnav-' + match[1]);
+        if (btn) btn.classList.add('active');
+      }
+      mobCloseSidebar();
+    });
+  });
+});
+
+// ===================================================
+// EXCLUIR USUÁRIO (Painel Master)
+// ===================================================
+async function muExcluirUsuario() {
+  if (!muCurrentUser) return;
+  const nome = muCurrentUser.nome || muCurrentUser.email || 'este usuário';
+  if (!confirm('⚠️ Tem certeza que deseja EXCLUIR permanentemente "' + nome + '"?\n\nEsta ação não pode ser desfeita.')) return;
+  if (!confirm('Confirme novamente: excluir "' + nome + '" definitivamente?')) return;
+  const { error } = await sb.from('perfis').delete().eq('id', muCurrentUser.id);
+  if (error) { toast('Erro ao excluir: ' + error.message, true); return; }
+  toast('✅ Usuário excluído com sucesso!');
+  closeModal('modal-usuario');
+  loadMaster();
 }
 </script>
 </body>

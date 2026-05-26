@@ -242,6 +242,7 @@ tbody tr:hover td{background:var(--pink-light);}
   .mob-header{display:flex;}
   .bnav{display:block;}
   .notif-wrapper{display:none!important;}
+  .notif-panel{width:calc(100vw - 32px)!important;right:16px!important;bottom:72px!important;}
   /* Sidebar escondida fora da tela */
   .sidebar{
     position:fixed!important;
@@ -310,7 +311,7 @@ tbody tr:hover td{background:var(--pink-light);}
 .notif-btn svg{width:26px;height:26px;color:var(--gray-600);}
 .notif-badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;background:var(--pink-dark);color:#fff;border-radius:20px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--white);display:none;}
 .notif-badge.show{display:flex;}
-.notif-panel{position:absolute;bottom:62px;right:0;width:320px;background:var(--white);border:1px solid var(--border-md);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.15);overflow:hidden;display:none;animation:slideUp .15s ease;}
+.notif-panel{position:fixed;bottom:72px;right:16px;width:320px;background:var(--white);border:1px solid var(--border-md);border-radius:14px;box-shadow:0 8px 40px rgba(0,0,0,.15);overflow:hidden;display:none;animation:slideUp .15s ease;}
 .notif-panel.open{display:block;}
 @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.notif-header{padding:.75rem 1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
@@ -462,14 +463,6 @@ tbody tr:hover td{background:var(--pink-light);}
 </nav>
 
 <!-- SINO DE NOTIFICAÇÃO -->
-<div class="notif-wrapper">
-  <button class="notif-btn" onclick="toggleNotif()" title="Notificações">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-    </svg>
-    <span class="notif-badge" id="notif-badge">0</span>
-  </button>
   <div class="notif-panel" id="notif-panel">
     <div class="notif-header">
       <span class="notif-header-title">🔔 Notificações</span>
@@ -486,6 +479,15 @@ tbody tr:hover td{background:var(--pink-light);}
     </div>
     <div class="notif-footer" id="notif-footer"></div>
   </div>
+<div class="notif-wrapper">
+  <button class="notif-btn" onclick="toggleNotif()" title="Notificações">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+    </svg>
+    <span class="notif-badge" id="notif-badge">0</span>
+  </button>
+
 </div>
 
   <div class="layout">
@@ -1104,6 +1106,8 @@ function showPage(id, el) {
     if (!isMaster) { showPage('dashboard', document.querySelector('.nav-item')); return; }
     loadMaster();
   }
+  // Fechar sidebar no mobile após navegar
+  if (window.innerWidth <= 768) mobCloseSidebar();
 }
 
 // ---- INIT ----
@@ -1144,7 +1148,11 @@ async function initApp() {
 }
 
 // ---- MODAL HELPERS ----
-function openModal(id) { document.getElementById(id).classList.add('open'); }
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
+  else console.warn('openModal: elemento não encontrado:', id);
+}
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-backdrop').forEach(m => {
   m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
@@ -2389,11 +2397,10 @@ async function confirmarNovaSenha() {
   }, 2000);
 }
 
-}
-
 // ===================================================
 // MOBILE FUNCTIONS
 // ===================================================
+function toggleSidebar() { mobToggleSidebar(); }
 function mobToggleSidebar() {
   const sb = document.querySelector('.sidebar');
   const ov = document.getElementById('mob-overlay');

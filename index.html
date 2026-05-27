@@ -693,21 +693,17 @@ tbody tr:hover td{background:var(--pink-light);}
             Novo lançamento
           </button>
         </div>
-        <div class="filtro-bar">
-          <select id="fin-filtro-ano" onchange="loadFinanceiro()"></select>
-          <button class="filtro-btn" data-mes="0" onclick="setMesFiltro(0,this)">Todos</button>
-          <button class="filtro-btn" data-mes="1" onclick="setMesFiltro(1,this)">Jan</button>
-          <button class="filtro-btn" data-mes="2" onclick="setMesFiltro(2,this)">Fev</button>
-          <button class="filtro-btn" data-mes="3" onclick="setMesFiltro(3,this)">Mar</button>
-          <button class="filtro-btn" data-mes="4" onclick="setMesFiltro(4,this)">Abr</button>
-          <button class="filtro-btn" data-mes="5" onclick="setMesFiltro(5,this)">Mai</button>
-          <button class="filtro-btn" data-mes="6" onclick="setMesFiltro(6,this)">Jun</button>
-          <button class="filtro-btn" data-mes="7" onclick="setMesFiltro(7,this)">Jul</button>
-          <button class="filtro-btn" data-mes="8" onclick="setMesFiltro(8,this)">Ago</button>
-          <button class="filtro-btn" data-mes="9" onclick="setMesFiltro(9,this)">Set</button>
-          <button class="filtro-btn" data-mes="10" onclick="setMesFiltro(10,this)">Out</button>
-          <button class="filtro-btn" data-mes="11" onclick="setMesFiltro(11,this)">Nov</button>
-          <button class="filtro-btn" data-mes="12" onclick="setMesFiltro(12,this)">Dez</button>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:12px;flex-wrap:wrap;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button onclick="finNavMes(-1)" style="width:32px;height:32px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">‹</button>
+            <span id="fin-periodo-label" style="font-size:15px;font-weight:600;color:var(--gray-800);min-width:130px;text-align:center;"></span>
+            <button onclick="finNavMes(1)" style="width:32px;height:32px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">›</button>
+            <button onclick="finVerTodos()" id="fin-btn-todos" style="padding:6px 12px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);font-size:12px;color:var(--gray-500);cursor:pointer;font-family:var(--font-body);">Todos</button>
+          </div>
+          <button onclick="openRelatorioModal()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);font-size:13px;color:var(--gray-700);cursor:pointer;font-family:var(--font-body);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            Exportar PDF
+          </button>
         </div>
         <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
           <div class="metric"><div class="metric-label">recebido</div><div class="metric-value" id="fin-recebido" style="color:var(--teal)">R$ 0</div></div>
@@ -1225,20 +1221,11 @@ async function initApp() {
   const now = new Date();
   loadNotificacoes();
   document.getElementById('dash-date').textContent = now.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  // preencher anos no filtro
-  const selAno = document.getElementById('fin-filtro-ano');
-  selAno.innerHTML = '';
-  for (let y = 2026; y <= 2999; y++) {
-    const o = document.createElement('option');
-    o.value = y; o.textContent = y;
-    if (y === now.getFullYear()) o.selected = true;
-    selAno.appendChild(o);
-  }
-  // ativar mês atual no filtro
-  const mesAtual = now.getMonth() + 1;
-  document.querySelectorAll('.filtro-btn').forEach(b => {
-    if (parseInt(b.dataset.mes) === mesAtual) { b.classList.add('active'); mesFiltro = mesAtual; }
-  });
+  // inicializar navegação do financeiro
+  finAno = now.getFullYear();
+  finMes = now.getMonth() + 1;
+  finTodos = false;
+  finAtualizarLabel();
   await Promise.all([loadDashboardMetrics(), loadCalendario(), loadDashCasos(), loadDashAlertas()]);
 }
 
@@ -1619,10 +1606,41 @@ function calcParcelas() {
 }
 
 // ---- FILTRO FINANCEIRO ----
+// ---- FINANCEIRO NAV ----
+const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+let finAno = new Date().getFullYear();
+let finMes = new Date().getMonth() + 1; // 1-12, ou 0 = todos
+let finTodos = false;
+
+function finAtualizarLabel() {
+  const label = document.getElementById('fin-periodo-label');
+  if (!label) return;
+  if (finTodos) {
+    label.textContent = 'Todos';
+  } else {
+    label.textContent = MESES_NOME[finMes - 1] + ' ' + finAno;
+  }
+}
+
+function finNavMes(dir) {
+  finTodos = false;
+  finMes += dir;
+  if (finMes > 12) { finMes = 1; finAno++; }
+  if (finMes < 1)  { finMes = 12; finAno--; }
+  finAtualizarLabel();
+  loadFinanceiro();
+}
+
+function finVerTodos() {
+  finTodos = true;
+  finAtualizarLabel();
+  loadFinanceiro();
+}
+
 function setMesFiltro(mes, el) {
-  mesFiltro = mes;
-  document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
+  // mantido por compatibilidade
+  finMes = mes; finTodos = (mes === 0);
+  finAtualizarLabel();
   loadFinanceiro();
 }
 
@@ -1630,14 +1648,14 @@ function setMesFiltro(mes, el) {
 async function loadFinanceiro() {
   const list = document.getElementById('list-financeiro');
   list.innerHTML = '<div class="loading">carregando...</div>';
-  const ano = parseInt(document.getElementById('fin-filtro-ano').value);
+  finAtualizarLabel();
   let query = sb.from('financeiro').select('*, clientes(nome)').order('vencimento', { ascending:true });
-  if (mesFiltro === 0) {
-    query = query.gte('vencimento', `${ano}-01-01`).lte('vencimento', `${ano}-12-31`);
+  if (finTodos) {
+    // sem filtro de data
   } else {
-    const mesStr = mesFiltro.toString().padStart(2,'0');
-    const lastDay = new Date(ano, mesFiltro, 0).getDate();
-    query = query.gte('vencimento', `${ano}-${mesStr}-01`).lte('vencimento', `${ano}-${mesStr}-${lastDay}`);
+    const mesStr = finMes.toString().padStart(2,'0');
+    const lastDay = new Date(finAno, finMes, 0).getDate();
+    query = query.gte('vencimento', `${finAno}-${mesStr}-01`).lte('vencimento', `${finAno}-${mesStr}-${lastDay}`);
   }
   const { data, error } = await query;
   if (error) { list.innerHTML = '<div class="loading">Erro.</div>'; return; }
@@ -2673,6 +2691,217 @@ async function muExcluirUsuario() {
   closeModal('modal-usuario');
   loadMaster();
 }
+
+// ---- RELATÓRIO PDF FINANCEIRO ----
+async function openRelatorioModal() {
+  // popular select de clientes
+  const sel = document.getElementById('rel-cliente');
+  sel.innerHTML = '<option value="">Todos os clientes</option>';
+  const { data: clientes } = await sb.from('clientes').select('id, nome').order('nome');
+  (clientes || []).forEach(c => {
+    const o = document.createElement('option');
+    o.value = c.id; o.textContent = c.nome;
+    sel.appendChild(o);
+  });
+  // pré-preencher com período atual
+  if (!finTodos) {
+    const mesStr = finMes.toString().padStart(2,'0');
+    const lastDay = new Date(finAno, finMes, 0).getDate();
+    document.getElementById('rel-data-ini').value = `${finAno}-${mesStr}-01`;
+    document.getElementById('rel-data-fim').value = `${finAno}-${mesStr}-${lastDay}`;
+  }
+  openModal('modal-relatorio');
+}
+
+async function gerarRelatorioPDF() {
+  const dataIni   = document.getElementById('rel-data-ini').value;
+  const dataFim   = document.getElementById('rel-data-fim').value;
+  const tipo      = document.getElementById('rel-tipo').value;
+  const status    = document.getElementById('rel-status').value;
+  const clienteId = document.getElementById('rel-cliente').value;
+  const incResumo = document.getElementById('rel-inc-resumo').checked;
+  const incLista  = document.getElementById('rel-inc-lista').checked;
+  const incCliente= document.getElementById('rel-inc-cliente').checked;
+
+  let query = sb.from('financeiro').select('*, clientes(nome)').order('vencimento', { ascending: true });
+  if (dataIni) query = query.gte('vencimento', dataIni);
+  if (dataFim) query = query.lte('vencimento', dataFim);
+  if (tipo)   query = query.eq('tipo', tipo);
+  if (status) query = query.eq('status', status);
+  if (clienteId) query = query.eq('cliente_id', clienteId);
+
+  const { data, error } = await query;
+  if (error) { toast('Erro ao buscar dados: ' + error.message, true); return; }
+  const items = data || [];
+
+  // Calcular totais
+  let recebido = 0, pendente = 0, vencido = 0;
+  items.forEach(f => {
+    const v = Number(f.valor || 0);
+    if (f.status === 'recebido') recebido += v;
+    else if (f.status === 'vencido') vencido += v;
+    else pendente += v;
+  });
+
+  const fmt = v => 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+  const fmtD = d => d ? new Date(d + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+  const periodoLabel = dataIni && dataFim
+    ? fmtD(dataIni) + ' a ' + fmtD(dataFim)
+    : dataIni ? 'A partir de ' + fmtD(dataIni)
+    : dataFim ? 'Até ' + fmtD(dataFim)
+    : 'Todos os registros';
+
+  const statusBadge = s => {
+    const cores = { recebido:'#D1FAE5;color:#065F46', pendente:'#FEF3C7;color:#92400E', vencido:'#FEE2E2;color:#991B1B' };
+    return `<span style="background:${cores[s]||'#F3F4F6;color:#374151'};padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;">${s}</span>`;
+  };
+
+  const linhasLancamentos = items.map(f => `
+    <tr>
+      <td style="padding:8px 10px;border-bottom:1px solid #F3F4F6;font-size:12px;">${f.descricao || '—'}</td>
+      ${incCliente ? `<td style="padding:8px 10px;border-bottom:1px solid #F3F4F6;font-size:12px;color:#6B7280;">${f.clientes?.nome || '—'}</td>` : ''}
+      <td style="padding:8px 10px;border-bottom:1px solid #F3F4F6;font-size:12px;color:#6B7280;">${fmtD(f.vencimento)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #F3F4F6;font-size:12px;">${statusBadge(f.status)}</td>
+      <td style="padding:8px 10px;border-bottom:1px solid #F3F4F6;font-size:12px;text-align:right;font-weight:600;color:${f.status==='recebido'?'#065F46':f.status==='vencido'?'#991B1B':'#92400E'};">${fmt(f.valor)}</td>
+    </tr>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório Financeiro — Araujo Advocacia</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin:0; padding:32px; color:#1F1F1F; }
+  .logo-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; padding-bottom:16px; border-bottom:2px solid #F9A8C9; }
+  .logo-title { font-size:22px; font-weight:700; color:#C96E9A; letter-spacing:.02em; }
+  .logo-sub { font-size:11px; color:#9CA3AF; margin-top:2px; }
+  .meta { font-size:11px; color:#9CA3AF; text-align:right; }
+  h2 { font-size:14px; font-weight:700; color:#374151; margin:0 0 12px; text-transform:uppercase; letter-spacing:.06em; }
+  .cards { display:flex; gap:12px; margin-bottom:28px; }
+  .card { flex:1; padding:16px; border-radius:10px; }
+  .card-label { font-size:10px; text-transform:uppercase; letter-spacing:.08em; margin-bottom:4px; }
+  .card-value { font-size:18px; font-weight:700; }
+  .card-recebido { background:#D1FAE5; } .card-recebido .card-label { color:#065F46; } .card-recebido .card-value { color:#065F46; }
+  .card-pendente { background:#FEF3C7; } .card-pendente .card-label { color:#92400E; } .card-pendente .card-value { color:#92400E; }
+  .card-vencido  { background:#FEE2E2; } .card-vencido .card-label  { color:#991B1B; } .card-vencido .card-value  { color:#991B1B; }
+  table { width:100%; border-collapse:collapse; }
+  thead tr { background:#FDF2F8; }
+  thead th { padding:10px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#9CA3AF; text-align:left; border-bottom:2px solid #F9A8C9; }
+  .footer { margin-top:32px; padding-top:12px; border-top:1px solid #F3F4F6; font-size:10px; color:#D1D5DB; text-align:center; }
+  @media print { body { padding:16px; } }
+</style>
+</head>
+<body>
+<div class="logo-header">
+  <div>
+    <div class="logo-title">Araujo Advocacia</div>
+    <div class="logo-sub">Advocacia &amp; Consultoria Jurídica</div>
+  </div>
+  <div class="meta">
+    <div style="font-size:13px;font-weight:700;color:#374151;">Relatório Financeiro</div>
+    <div>Período: ${periodoLabel}</div>
+    <div>Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}</div>
+    <div>${items.length} lançamento${items.length !== 1 ? 's' : ''}</div>
+  </div>
+</div>
+
+${incResumo ? `
+<h2>Resumo</h2>
+<div class="cards">
+  <div class="card card-recebido"><div class="card-label">Recebido</div><div class="card-value">${fmt(recebido)}</div></div>
+  <div class="card card-pendente"><div class="card-label">A receber</div><div class="card-value">${fmt(pendente)}</div></div>
+  <div class="card card-vencido"><div class="card-label">Vencido</div><div class="card-value">${fmt(vencido)}</div></div>
+</div>` : ''}
+
+${incLista ? `
+<h2>Lançamentos</h2>
+${items.length === 0 ? '<p style="color:#9CA3AF;font-size:13px;">Nenhum lançamento encontrado com os filtros selecionados.</p>' : `
+<table>
+  <thead><tr>
+    <th>Descrição</th>
+    ${incCliente ? '<th>Cliente</th>' : ''}
+    <th>Vencimento</th>
+    <th>Status</th>
+    <th style="text-align:right;">Valor</th>
+  </tr></thead>
+  <tbody>${linhasLancamentos}</tbody>
+  <tfoot>
+    <tr style="background:#F9FAFB;">
+      <td colspan="${incCliente ? 4 : 3}" style="padding:10px;font-weight:700;font-size:13px;">Total</td>
+      <td style="padding:10px;font-weight:700;font-size:13px;text-align:right;">${fmt(recebido + pendente + vencido)}</td>
+    </tr>
+  </tfoot>
+</table>`}` : ''}
+
+<div class="footer">Araujo Advocacia — Documento gerado automaticamente pelo sistema interno</div>
+</body></html>`;
+
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(() => win.print(), 600);
+  closeModal('modal-relatorio');
+}
+
 </script>
+
+<!-- MODAL RELATÓRIO PDF -->
+<div class="modal-backdrop" id="modal-relatorio">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <span class="modal-title">📄 Exportar Relatório Financeiro</span>
+      <button class="modal-close" onclick="closeModal('modal-relatorio')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div style="padding:0 1.5rem 1rem;">
+      <p style="font-size:13px;color:var(--gray-400);margin-bottom:1.25rem;">Selecione os filtros desejados. Deixe em branco para incluir todos os registros.</p>
+
+      <div class="form-section-title" style="font-size:11px;letter-spacing:.06em;color:var(--gray-400);text-transform:uppercase;margin-bottom:12px;">Período</div>
+      <div class="form-row">
+        <div class="form-group"><label>Data inicial</label><input type="date" id="rel-data-ini"></div>
+        <div class="form-group"><label>Data final</label><input type="date" id="rel-data-fim"></div>
+      </div>
+
+      <div class="form-section-title" style="font-size:11px;letter-spacing:.06em;color:var(--gray-400);text-transform:uppercase;margin:12px 0;">Filtros</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Tipo</label>
+          <select id="rel-tipo">
+            <option value="">Todos</option>
+            <option value="entrada">Entrada</option>
+            <option value="saida">Saída</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="rel-status">
+            <option value="">Todos</option>
+            <option value="recebido">Recebido</option>
+            <option value="pendente">Pendente</option>
+            <option value="vencido">Vencido</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Cliente</label>
+        <select id="rel-cliente"><option value="">Todos os clientes</option></select>
+      </div>
+
+      <div class="form-section-title" style="font-size:11px;letter-spacing:.06em;color:var(--gray-400);text-transform:uppercase;margin:12px 0;">Incluir no relatório</div>
+      <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:4px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="rel-inc-resumo" checked> Resumo financeiro</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="rel-inc-lista" checked> Lista de lançamentos</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;"><input type="checkbox" id="rel-inc-cliente"> Coluna de cliente</label>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-relatorio')">Cancelar</button>
+      <button class="btn btn-pink" onclick="gerarRelatorioPDF()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Gerar PDF
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

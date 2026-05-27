@@ -217,13 +217,8 @@ tbody tr:hover td{background:var(--pink-light);}
 .mob-badge{position:absolute;top:-3px;right:-3px;min-width:16px;height:16px;background:var(--pink-dark);color:#fff;border-radius:20px;font-size:10px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--white);}
 .mob-badge.show{display:flex;}
 
-/* ===== BOTTOM NAV ===== */
-.bnav{display:none;position:fixed;bottom:0;left:0;right:0;z-index:600;background:var(--white);border-top:1px solid var(--border);}
-.bnav-inner{display:flex;align-items:stretch;}
-.bnav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:8px 2px 10px;cursor:pointer;color:var(--gray-400);background:none;border:none;font-family:var(--font-body);transition:color .15s;}
-.bnav-btn.active{color:var(--pink-dark);}
-.bnav-btn svg{width:20px;height:20px;}
-.bnav-btn span{font-size:9px;font-weight:500;}
+/* ===== BOTTOM NAV — removido ===== */
+.bnav{display:none!important;}
 
 /* ===== OVERLAY ===== */
 #mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:650;}
@@ -267,7 +262,7 @@ tbody tr:hover td{background:var(--pink-light);}
   .user-avatar{margin:0!important;}
   /* Layout: sidebar não empurra o main */
   .layout{display:block!important;}
-  .main{padding:1rem;padding-bottom:72px;margin-left:0!important;}
+  .main{padding:1rem;padding-bottom:1rem;margin-left:0!important;}
   .two-col{grid-template-columns:1fr;}
   .form-row{grid-template-columns:1fr;}
   .modal{width:95vw!important;max-width:95vw!important;}
@@ -473,7 +468,7 @@ tbody tr:hover td{background:var(--pink-light);}
   </button>
   <span class="mob-brand">Araujo Advocacia</span>
   <div style="display:flex;align-items:center;gap:8px;">
-    <button class="mob-avatar" id="mob-avatar-btn" onclick="openModal('modal-perfil')">AA</button>
+    <button class="mob-avatar" id="mob-avatar-btn" onclick="openPerfilModal()">AA</button>
     <div class="mob-notif-btn" onclick="toggleNotif()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       <span class="mob-badge" id="mob-notif-badge"></span>
@@ -579,7 +574,7 @@ tbody tr:hover td{background:var(--pink-light);}
         </div>
       </nav>
       <div class="sidebar-footer">
-        <div class="user-info" onclick="openModal('modal-perfil')" title="Ver / editar meu perfil"
+        <div class="user-info" onclick="openPerfilModal()" title="Ver / editar meu perfil"
           style="cursor:pointer;border-radius:8px;padding:6px;margin:-6px;transition:background .15s;position:relative;"
           onmouseenter="this.style.background='var(--pink-light)'" onmouseleave="this.style.background='transparent'">
           <div class="user-avatar" id="user-avatar">AA</div>
@@ -967,6 +962,40 @@ tbody tr:hover td{background:var(--pink-light);}
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-financeiro')">Cancelar</button>
       <button class="btn btn-pink" onclick="salvarFinanceiro()">Salvar lançamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PERFIL -->
+<div class="modal-backdrop" id="modal-perfil">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <span class="modal-title">Meu Perfil</span>
+      <button class="modal-close" onclick="closeModal('modal-perfil')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <!-- Avatar + info resumida -->
+    <div style="display:flex;align-items:center;gap:16px;padding:1.25rem 1.5rem;background:var(--pink-light);border-bottom:1px solid var(--border);border-radius:10px 10px 0 0;">
+      <div id="perfil-avatar-big" style="width:56px;height:56px;border-radius:50%;background:var(--pink-mid);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--pink-dark);flex-shrink:0;"></div>
+      <div>
+        <div id="perfil-nome-display" style="font-size:16px;font-weight:700;color:var(--gray-800);"></div>
+        <div id="perfil-email-display" style="font-size:12px;color:var(--gray-400);"></div>
+        <div id="perfil-tipo-display" style="font-size:12px;color:var(--pink-dark);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div style="padding:1.25rem 1.5rem;">
+      <div class="form-group"><label>Nome completo</label><input type="text" id="perfil-nome" placeholder="Seu nome"></div>
+      <div class="form-group"><label>Função</label>
+        <select id="perfil-tipo" onchange="toggleOABPerfil(this.value)">
+          <option value="advogado">⚖️ Advogado(a)</option>
+          <option value="estagiario">📚 Estagiário(a)</option>
+        </select>
+      </div>
+      <div class="form-group" id="perfil-oab-box"><label>Número OAB</label><input type="text" id="perfil-oab" placeholder="Ex: ES12345"></div>
+      <div class="form-group"><label>Telefone</label><input type="text" id="perfil-tel" placeholder="(27) 99999-0000" oninput="maskTelefone(this)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('modal-perfil')">Cancelar</button>
+      <button class="btn btn-pink" onclick="salvarPerfil()">Salvar perfil</button>
     </div>
   </div>
 </div>
@@ -2211,12 +2240,45 @@ async function deleteDoc(casoId, fileName) {
 
 </script>
 <script>
+// ---- ABRIR MODAL PERFIL ----
+function openPerfilModal() {
+  if (!currentUser) return;
+  const meta = currentUser.user_metadata || {};
+  const nome = meta.nome || currentUser.email;
+  const tipo = meta.tipo || 'advogado';
+  const oab  = meta.oab  || '';
+  const ini  = nome.substring(0,2).toUpperCase();
+  const pNome  = document.getElementById('perfil-nome');
+  const pEmail = document.getElementById('perfil-email-display');
+  const pTipo  = document.getElementById('perfil-tipo');
+  const pOab   = document.getElementById('perfil-oab');
+  const pTel   = document.getElementById('perfil-tel');
+  const pAv    = document.getElementById('perfil-avatar-big');
+  const pNomeD = document.getElementById('perfil-nome-display');
+  const pTipoD = document.getElementById('perfil-tipo-display');
+  if (pNome)  pNome.value  = nome;
+  if (pEmail) pEmail.textContent = currentUser.email;
+  if (pTipo)  { pTipo.value = tipo; toggleOABPerfil(tipo); }
+  if (pOab)   pOab.value   = oab;
+  if (pTel)   pTel.value   = meta.telefone || '';
+  if (pAv)    pAv.textContent  = ini;
+  if (pNomeD) pNomeD.textContent = nome;
+  if (pTipoD) pTipoD.textContent = tipo === 'estagiario'
+    ? '📚 Estagiário(a)'
+    : ('⚖️ Advogado(a)' + (oab ? ' · OAB: ' + oab : ''));
+  openModal('modal-perfil');
+}
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
   });
 }
-// Botão de instalação PWA
+
+// Detectar iOS
+const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isInStandaloneMode = ('standalone' in window.navigator) && window.navigator.standalone;
+
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
@@ -2229,11 +2291,24 @@ window.addEventListener('appinstalled', () => {
   if (btn) btn.style.display = 'none';
   deferredPrompt = null;
 });
+
+// Mostrar botão no iOS se não estiver instalado
+if (isIos && !isInStandaloneMode) {
+  const btn = document.getElementById('btn-instalar');
+  if (btn) btn.style.display = 'flex';
+}
+
 async function instalarApp() {
   if (deferredPrompt) {
+    // Android / Chrome — fluxo nativo
     deferredPrompt.prompt();
     await deferredPrompt.userChoice;
     deferredPrompt = null;
+  } else if (isIos && !isInStandaloneMode) {
+    // iOS — instrução manual
+    alert('Para instalar no iPhone/iPad:\n\n1. Toque no botão de compartilhar (⬆) no Safari\n2. Selecione "Adicionar à Tela de Início"\n3. Toque em "Adicionar"');
+  } else {
+    toast('O app já está instalado ou seu navegador não suporta instalação.', true);
   }
 }
 

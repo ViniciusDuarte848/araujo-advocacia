@@ -1137,12 +1137,11 @@ sb.auth.onAuthStateChange((event, session) => {
     return;
   }
   if (session?.user && event !== 'TOKEN_REFRESHED') {
-    // Verificar se o usuário foi excluído/bloqueado na tabela perfis
-    sb.from('perfis').select('excluido, ativo').eq('id', session.user.id).single().then(({ data: perfil }) => {
+    // Verificar se o usuário foi excluído ou desativado
+    sb.from('perfis').select('ativo, excluido').eq('id', session.user.id).single().then(({ data: perfil }) => {
       if (perfil && (perfil.excluido === true || perfil.ativo === false)) {
         sb.auth.signOut();
-        alert('🚫 Seu acesso foi revogado. Entre em contato com o administrador.');
-        return;
+        setTimeout(() => alert('🚫 Seu acesso foi revogado. Entre em contato com o administrador.'), 300);
       }
     });
     // Só inicializa se ainda não estiver logado (evita duplo init)
@@ -1926,11 +1925,11 @@ async function loadMaster() {
     return;
   }
   el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--gray-400);font-size:13px;">carregando...</div>';
-  const { data, error } = await sb.from('perfis').select('id, nome, email, tipo, oab, telefone, ultimo_acesso, created_at, ativo, observacao').order('created_at', { ascending: false });
+  const { data, error } = await sb.from('perfis').select('id, nome, email, tipo, oab, telefone, ultimo_acesso, created_at, ativo, excluido, observacao').order('created_at', { ascending: false });
   if (error) { el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--gray-400);">Erro ao carregar.</div>'; return; }
   const now = new Date();
   let onlineCount = 0;
-  const rows = (data || []).map(u => {
+  const rows = (data || []).filter(u => !u.excluido).map(u => {
     const ua = u.ultimo_acesso ? new Date(u.ultimo_acesso) : null;
     const dm = ua ? Math.floor((now - ua) / 60000) : null;
     const online = dm !== null && dm < 15;
@@ -2654,16 +2653,23 @@ async function muExcluirUsuario() {
   if (!confirm('⚠️ Tem certeza que deseja EXCLUIR permanentemente "' + nome + '"?\n\nEsta ação não pode ser desfeita.')) return;
   if (!confirm('Confirme novamente: excluir "' + nome + '" definitivamente?')) return;
 
-  // 1. Marcar como excluido/inativo na tabela perfis
-  const { error: errUpdate } = await sb.from('perfis')
-    .update({ excluido: true, ativo: false })
-    .eq('id', muCurrentUser.id);
-  if (errUpdate) { toast('Erro ao excluir: ' + errUpdate.message, true); return; }
+  const uid = muCurrentUser.id;
 
-  // 2. Tentar remover do auth (pode não funcionar com anon key, mas a proteção via perfis.excluido já basta)
-  try { await sb.auth.admin.deleteUser(muCurrentUser.id); } catch (_) {}
+  // Passo 1: tentar deletar o registro de perfis
+  const { error: errDel } = await sb.from('perfis').delete().eq('id', uid);
 
-  toast('✅ Usuário excluído! Acesso revogado automaticamente.');
+  if (errDel) {
+    // RLS pode estar bloqueando o delete — marcar como excluido/inativo como fallback
+    console.warn('Delete bloqueado:', errDel.message);
+    const { error: errUpd } = await sb.from('perfis').update({ ativo: false, excluido: true }).eq('id', uid);
+    if (errUpd) { toast('Erro ao excluir: ' + errUpd.message, true); return; }
+    toast('⚠️ Acesso revogado! Para remoção total, rode no Supabase SQL: DELETE FROM perfis WHERE id = \'' + uid + '\'');
+    closeModal('modal-usuario');
+    loadMaster();
+    return;
+  }
+
+  toast('✅ Usuário excluído permanentemente!');
   closeModal('modal-usuario');
   loadMaster();
 }

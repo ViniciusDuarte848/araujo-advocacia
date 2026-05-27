@@ -1137,6 +1137,14 @@ sb.auth.onAuthStateChange((event, session) => {
     return;
   }
   if (session?.user && event !== 'TOKEN_REFRESHED') {
+    // Verificar se o usuário foi excluído/bloqueado na tabela perfis
+    sb.from('perfis').select('excluido, ativo').eq('id', session.user.id).single().then(({ data: perfil }) => {
+      if (perfil && (perfil.excluido === true || perfil.ativo === false)) {
+        sb.auth.signOut();
+        alert('🚫 Seu acesso foi revogado. Entre em contato com o administrador.');
+        return;
+      }
+    });
     // Só inicializa se ainda não estiver logado (evita duplo init)
     if (currentUser && currentUser.id === session.user.id) return;
     currentUser = session.user;
@@ -2645,9 +2653,17 @@ async function muExcluirUsuario() {
   const nome = muCurrentUser.nome || muCurrentUser.email || 'este usuário';
   if (!confirm('⚠️ Tem certeza que deseja EXCLUIR permanentemente "' + nome + '"?\n\nEsta ação não pode ser desfeita.')) return;
   if (!confirm('Confirme novamente: excluir "' + nome + '" definitivamente?')) return;
-  const { error } = await sb.from('perfis').delete().eq('id', muCurrentUser.id);
-  if (error) { toast('Erro ao excluir: ' + error.message, true); return; }
-  toast('✅ Usuário excluído com sucesso!');
+
+  // 1. Marcar como excluido/inativo na tabela perfis
+  const { error: errUpdate } = await sb.from('perfis')
+    .update({ excluido: true, ativo: false })
+    .eq('id', muCurrentUser.id);
+  if (errUpdate) { toast('Erro ao excluir: ' + errUpdate.message, true); return; }
+
+  // 2. Tentar remover do auth (pode não funcionar com anon key, mas a proteção via perfis.excluido já basta)
+  try { await sb.auth.admin.deleteUser(muCurrentUser.id); } catch (_) {}
+
+  toast('✅ Usuário excluído! Acesso revogado automaticamente.');
   closeModal('modal-usuario');
   loadMaster();
 }

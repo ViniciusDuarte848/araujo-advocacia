@@ -693,17 +693,31 @@ tbody tr:hover td{background:var(--pink-light);}
             Novo lançamento
           </button>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:12px;flex-wrap:wrap;">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <button onclick="finNavMes(-1)" style="width:32px;height:32px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">‹</button>
-            <span id="fin-periodo-label" style="font-size:15px;font-weight:600;color:var(--gray-800);min-width:130px;text-align:center;"></span>
-            <button onclick="finNavMes(1)" style="width:32px;height:32px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">›</button>
-            <button onclick="finVerTodos()" id="fin-btn-todos" style="padding:6px 12px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);font-size:12px;color:var(--gray-500);cursor:pointer;font-family:var(--font-body);">Todos</button>
+        <!-- BARRA DE CONTROLES FINANCEIRO -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:10px;flex-wrap:wrap;">
+          <!-- MESES -->
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <button onclick="finNavMes(-1)" style="width:30px;height:30px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">‹</button>
+            <span id="fin-mes-label" style="font-size:14px;font-weight:600;color:var(--gray-800);min-width:90px;text-align:center;"></span>
+            <button onclick="finNavMes(1)" style="width:30px;height:30px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">›</button>
+            <button onclick="finVerTodos()" id="fin-btn-todos" style="padding:5px 11px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);font-size:12px;color:var(--gray-500);cursor:pointer;font-family:var(--font-body);">Todos</button>
+            <!-- SEPARADOR -->
+            <div style="width:1px;height:20px;background:var(--border-md);margin:0 2px;"></div>
+            <!-- ANO -->
+            <button onclick="finNavAno(-1)" style="width:30px;height:30px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">‹</button>
+            <span id="fin-ano-label" style="font-size:14px;font-weight:600;color:var(--gray-800);min-width:44px;text-align:center;"></span>
+            <button onclick="finNavAno(1)" style="width:30px;height:30px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">›</button>
           </div>
-          <button onclick="openRelatorioModal()" style="display:flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);font-size:13px;color:var(--gray-700);cursor:pointer;font-family:var(--font-body);">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <!-- EXPORTAR -->
+          <button onclick="openRelatorioModal()" style="display:flex;align-items:center;gap:6px;padding:6px 13px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);font-size:13px;color:var(--gray-700);cursor:pointer;font-family:var(--font-body);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
             Exportar PDF
           </button>
+        </div>
+        <!-- BARRA DE PESQUISA -->
+        <div style="margin-bottom:1rem;position:relative;">
+          <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input id="fin-search" type="text" placeholder="Pesquisar por descrição ou cliente..." oninput="finFiltrarLista()" style="width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border-md);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-body);outline:none;box-sizing:border-box;background:var(--white);color:var(--gray-800);">
         </div>
         <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
           <div class="metric"><div class="metric-label">recebido</div><div class="metric-value" id="fin-recebido" style="color:var(--teal)">R$ 0</div></div>
@@ -1609,24 +1623,28 @@ function calcParcelas() {
 // ---- FINANCEIRO NAV ----
 const MESES_NOME = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 let finAno = new Date().getFullYear();
-let finMes = new Date().getMonth() + 1; // 1-12, ou 0 = todos
-let finTodos = false;
+let finMes = new Date().getMonth() + 1; // 1-12
+let finTodos = false; // true = todos os meses do ano selecionado
+let finDadosCompletos = []; // cache para pesquisa
 
 function finAtualizarLabel() {
-  const label = document.getElementById('fin-periodo-label');
-  if (!label) return;
-  if (finTodos) {
-    label.textContent = 'Todos';
-  } else {
-    label.textContent = MESES_NOME[finMes - 1] + ' ' + finAno;
-  }
+  const lMes = document.getElementById('fin-mes-label');
+  const lAno = document.getElementById('fin-ano-label');
+  if (lMes) lMes.textContent = finTodos ? 'Todos' : MESES_NOME[finMes - 1];
+  if (lAno) lAno.textContent = finAno;
 }
 
 function finNavMes(dir) {
   finTodos = false;
   finMes += dir;
-  if (finMes > 12) { finMes = 1; finAno++; }
-  if (finMes < 1)  { finMes = 12; finAno--; }
+  if (finMes > 12) { finMes = 1; }
+  if (finMes < 1)  { finMes = 12; }
+  finAtualizarLabel();
+  loadFinanceiro();
+}
+
+function finNavAno(dir) {
+  finAno += dir;
   finAtualizarLabel();
   loadFinanceiro();
 }
@@ -1638,10 +1656,19 @@ function finVerTodos() {
 }
 
 function setMesFiltro(mes, el) {
-  // mantido por compatibilidade
-  finMes = mes; finTodos = (mes === 0);
+  finMes = mes || 1; finTodos = (mes === 0);
   finAtualizarLabel();
   loadFinanceiro();
+}
+
+function finFiltrarLista() {
+  const q = (document.getElementById('fin-search')?.value || '').toLowerCase().trim();
+  if (!finDadosCompletos.length) return;
+  const filtrado = q ? finDadosCompletos.filter(f =>
+    (f.descricao || '').toLowerCase().includes(q) ||
+    (f.clientes?.nome || '').toLowerCase().includes(q)
+  ) : finDadosCompletos;
+  renderFinanceiro(filtrado);
 }
 
 // ---- FINANCEIRO LOAD ----
@@ -1649,17 +1676,27 @@ async function loadFinanceiro() {
   const list = document.getElementById('list-financeiro');
   list.innerHTML = '<div class="loading">carregando...</div>';
   finAtualizarLabel();
+  // limpar pesquisa ao trocar período
+  const srch = document.getElementById('fin-search');
+  if (srch) srch.value = '';
+
   let query = sb.from('financeiro').select('*, clientes(nome)').order('vencimento', { ascending:true });
   if (finTodos) {
-    // sem filtro de data
+    // Todos = ano inteiro selecionado
+    query = query.gte('vencimento', `${finAno}-01-01`).lte('vencimento', `${finAno}-12-31`);
   } else {
     const mesStr = finMes.toString().padStart(2,'0');
     const lastDay = new Date(finAno, finMes, 0).getDate();
     query = query.gte('vencimento', `${finAno}-${mesStr}-01`).lte('vencimento', `${finAno}-${mesStr}-${lastDay}`);
   }
   const { data, error } = await query;
-  if (error) { list.innerHTML = '<div class="loading">Erro.</div>'; return; }
-  const items = data || [];
+  if (error) { list.innerHTML = '<div class="loading">Erro ao carregar.</div>'; return; }
+  finDadosCompletos = data || [];
+  renderFinanceiro(finDadosCompletos);
+}
+
+function renderFinanceiro(items) {
+  const list = document.getElementById('list-financeiro');
   let recebido = 0, pendente = 0, vencido = 0;
   const hoje = new Date().toISOString().split('T')[0];
   items.forEach(f => {
@@ -1670,10 +1707,9 @@ async function loadFinanceiro() {
   document.getElementById('fin-recebido').textContent = fmtMoney(recebido);
   document.getElementById('fin-pendente').textContent = fmtMoney(pendente);
   document.getElementById('fin-vencido').textContent = fmtMoney(vencido);
-  if (!items.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum lançamento neste período.</p></div>'; return; }
-  const hoje2 = new Date().toISOString().split('T')[0];
+  if (!items.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum lançamento encontrado.</p></div>'; return; }
   list.innerHTML = items.map(f => {
-    const isVencido = f.status !== 'recebido' && f.vencimento < hoje2;
+    const isVencido = f.status !== 'recebido' && f.vencimento < hoje;
     const cls = f.status === 'recebido' ? 'received' : (isVencido ? 'overdue' : 'pending');
     const badge = isVencido && f.status !== 'recebido' ? badgeHtml('vencido') : badgeHtml(f.status);
     return `<div class="fin-row">
@@ -2704,7 +2740,10 @@ async function openRelatorioModal() {
     sel.appendChild(o);
   });
   // pré-preencher com período atual
-  if (!finTodos) {
+  if (finTodos) {
+    document.getElementById('rel-data-ini').value = `${finAno}-01-01`;
+    document.getElementById('rel-data-fim').value = `${finAno}-12-31`;
+  } else {
     const mesStr = finMes.toString().padStart(2,'0');
     const lastDay = new Date(finAno, finMes, 0).getDate();
     document.getElementById('rel-data-ini').value = `${finAno}-${mesStr}-01`;
@@ -2726,7 +2765,7 @@ async function gerarRelatorioPDF() {
   let query = sb.from('financeiro').select('*, clientes(nome)').order('vencimento', { ascending: true });
   if (dataIni) query = query.gte('vencimento', dataIni);
   if (dataFim) query = query.lte('vencimento', dataFim);
-  if (tipo)   query = query.eq('tipo', tipo);
+  // tipo removido (coluna não existe no Supabase)
   if (status) query = query.eq('status', status);
   if (clienteId) query = query.eq('cliente_id', clienteId);
 
@@ -2863,15 +2902,7 @@ ${items.length === 0 ? '<p style="color:#9CA3AF;font-size:13px;">Nenhum lançame
 
       <div class="form-section-title" style="font-size:11px;letter-spacing:.06em;color:var(--gray-400);text-transform:uppercase;margin:12px 0;">Filtros</div>
       <div class="form-row">
-        <div class="form-group">
-          <label>Tipo</label>
-          <select id="rel-tipo">
-            <option value="">Todos</option>
-            <option value="entrada">Entrada</option>
-            <option value="saida">Saída</option>
-          </select>
-        </div>
-        <div class="form-group">
+        <div class="form-group" style="flex:1;">
           <label>Status</label>
           <select id="rel-status">
             <option value="">Todos</option>

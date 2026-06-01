@@ -690,7 +690,12 @@ tbody tr:hover td{background:var(--pink-light);}
       <div class="page" id="page-financeiro">
         <div class="page-header">
           <div class="page-title">Financeiro</div>
-          <div style="display:flex;align-items:center;gap:8px;">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;justify-content:flex-end;">
+            <!-- BARRA DE PESQUISA NO HEADER -->
+            <div style="position:relative;flex:1;max-width:320px;">
+              <svg style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--gray-400);pointer-events:none;" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="fin-search" type="text" placeholder="Pesquisar..." oninput="finFiltrarLista()" style="width:100%;padding:7px 10px 7px 28px;border:1px solid var(--border-md);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-body);outline:none;box-sizing:border-box;background:var(--white);color:var(--gray-800);">
+            </div>
             <button onclick="openRelatorioModal()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);font-size:13px;color:var(--gray-700);cursor:pointer;font-family:var(--font-body);white-space:nowrap;">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
               Exportar PDF
@@ -712,11 +717,7 @@ tbody tr:hover td{background:var(--pink-light);}
           <span id="fin-ano-label" style="font-size:14px;font-weight:600;color:var(--gray-800);min-width:44px;text-align:center;"></span>
           <button onclick="finNavAno(1)" style="width:30px;height:30px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">›</button>
         </div>
-        <!-- BARRA DE PESQUISA -->
-        <div style="margin-bottom:1rem;position:relative;">
-          <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--gray-400);" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input id="fin-search" type="text" placeholder="Pesquisar por descrição ou cliente..." oninput="finFiltrarLista()" style="width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border-md);border-radius:var(--radius-sm);font-size:13px;font-family:var(--font-body);outline:none;box-sizing:border-box;background:var(--white);color:var(--gray-800);">
-        </div>
+
         <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
           <div class="metric"><div class="metric-label">recebido</div><div class="metric-value" id="fin-recebido" style="color:var(--teal)">R$ 0</div></div>
           <div class="metric"><div class="metric-label">a receber</div><div class="metric-value" id="fin-pendente" style="color:var(--amber)">R$ 0</div></div>
@@ -2844,9 +2845,9 @@ async function gerarRelatorioPDF() {
   const tipo      = document.getElementById('rel-tipo').value;
   const status    = document.getElementById('rel-status').value;
   const clienteId = document.getElementById('rel-cliente').value;
-  const incResumo = document.getElementById('rel-inc-resumo').checked;
-  const incLista  = document.getElementById('rel-inc-lista').checked;
-  const incCliente= document.getElementById('rel-inc-cliente').checked;
+  const incResumo = document.getElementById('rel-inc-resumo')?.checked ?? true;
+  const incLista  = document.getElementById('rel-inc-lista')?.checked ?? true;
+  const incCliente= document.getElementById('rel-inc-cliente')?.checked ?? false;
 
   let query = sb.from('financeiro').select('*, clientes(nome)').order('vencimento', { ascending: true });
   if (dataIni) query = query.gte('vencimento', dataIni);

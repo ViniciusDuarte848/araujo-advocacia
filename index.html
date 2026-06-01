@@ -319,6 +319,23 @@ tbody tr:hover td{background:var(--pink-light);}
 .notif-item:hover{background:var(--pink-light);}
 .notif-item.amanha .notif-icon{background:#FEF3C7;color:#92400E;}
 .notif-item.aviso .notif-icon{background:#EFF6FF;color:#1D4ED8;}
+/* ── FIN CARDS ── */
+.fin-cards-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.25rem;}
+.fin-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;}
+.fin-card-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;margin-bottom:6px;}
+.fin-card-value{font-size:22px;font-weight:700;line-height:1.1;}
+.fin-card-recebido .fin-card-label{color:var(--teal);}
+.fin-card-recebido .fin-card-value{color:var(--teal);}
+.fin-card-pendente .fin-card-label{color:var(--amber);}
+.fin-card-pendente .fin-card-value{color:var(--amber);}
+.fin-card-vencido .fin-card-label{color:var(--red);}
+.fin-card-vencido .fin-card-value{color:var(--red);}
+@media(max-width:640px){
+  .fin-cards-row{grid-template-columns:1fr;}
+  .fin-card{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;}
+  .fin-card-label{margin-bottom:0;font-size:12px;}
+  .fin-card-value{font-size:18px;}
+}
 .notif-item.urgente .notif-icon{background:var(--red-light);}
 .notif-item.urgente .notif-icon svg{color:var(--red);}
 .notif-item.hoje .notif-icon{background:#FFF8E1;}
@@ -718,10 +735,19 @@ tbody tr:hover td{background:var(--pink-light);}
           <button onclick="finNavAno(1)" style="width:30px;height:30px;border:1px solid var(--border-md);border-radius:var(--radius-sm);background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--gray-600);">›</button>
         </div>
 
-        <div class="metrics" style="grid-template-columns:repeat(3,1fr)">
-          <div class="metric"><div class="metric-label">recebido</div><div class="metric-value" id="fin-recebido" style="color:var(--teal)">R$ 0</div></div>
-          <div class="metric"><div class="metric-label">a receber</div><div class="metric-value" id="fin-pendente" style="color:var(--amber)">R$ 0</div></div>
-          <div class="metric"><div class="metric-label">vencido</div><div class="metric-value" id="fin-vencido" style="color:var(--red)">R$ 0</div></div>
+        <div class="fin-cards-row">
+          <div class="fin-card fin-card-recebido">
+            <div class="fin-card-label">Recebido</div>
+            <div class="fin-card-value" id="fin-recebido">R$ 0,00</div>
+          </div>
+          <div class="fin-card fin-card-pendente">
+            <div class="fin-card-label">A receber</div>
+            <div class="fin-card-value" id="fin-pendente">R$ 0,00</div>
+          </div>
+          <div class="fin-card fin-card-vencido">
+            <div class="fin-card-label">Vencido</div>
+            <div class="fin-card-value" id="fin-vencido">R$ 0,00</div>
+          </div>
         </div>
         <div class="card">
           <div id="list-financeiro"><div class="loading">carregando...</div></div>
@@ -1893,10 +1919,20 @@ let calAno = new Date().getFullYear();
 let calMes = new Date().getMonth();
 
 async function loadCalendario() {
-  const inicio = new Date(calAno, calMes, 1).toISOString().split('T')[0];
-  const fim = new Date(calAno, calMes + 1, 0).toISOString().split('T')[0];
-  const { data } = await sb.from('agenda').select('*, clientes(nome)').gte('data', inicio).lte('data', fim).order('data');
-  calData = data || [];
+  const mesStr = String(calMes + 1).padStart(2, '0');
+  const inicio = `${calAno}-${mesStr}-01`;
+  const lastDay = new Date(calAno, calMes + 1, 0).getDate();
+  const fim = `${calAno}-${mesStr}-${String(lastDay).padStart(2, '0')}`;
+  const { data } = await sb.from('agenda')
+    .select('id, titulo, data, horario, tipo, clientes(nome)')
+    .gte('data', inicio)
+    .lte('data', fim)
+    .order('data');
+  // normalizar datas para garantir formato YYYY-MM-DD
+  calData = (data || []).map(e => ({
+    ...e,
+    data: e.data ? e.data.substring(0, 10) : e.data
+  }));
   renderCal();
 }
 
@@ -2840,11 +2876,10 @@ async function openRelatorioModal() {
 }
 
 async function gerarRelatorioPDF() {
-  const dataIni   = document.getElementById('rel-data-ini').value;
-  const dataFim   = document.getElementById('rel-data-fim').value;
-  const tipo      = document.getElementById('rel-tipo').value;
-  const status    = document.getElementById('rel-status').value;
-  const clienteId = document.getElementById('rel-cliente').value;
+  const dataIni   = document.getElementById('rel-data-ini')?.value || '';
+  const dataFim   = document.getElementById('rel-data-fim')?.value || '';
+  const status    = document.getElementById('rel-status')?.value || '';
+  const clienteId = document.getElementById('rel-cliente')?.value || '';
   const incResumo = document.getElementById('rel-inc-resumo')?.checked ?? true;
   const incLista  = document.getElementById('rel-inc-lista')?.checked ?? true;
   const incCliente= document.getElementById('rel-inc-cliente')?.checked ?? false;

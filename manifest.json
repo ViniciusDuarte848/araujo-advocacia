@@ -1,0 +1,26 @@
+{
+  "name": "Araujo Advocacia",
+  "short_name": "Araujo Adv",
+  "description": "Sistema de Gestão Jurídica",
+  "start_url": "/araujo-advocacia/",
+  "scope": "/araujo-advocacia/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FDF6F8",
+  "theme_color": "#C4728A",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "https://viniciusduarte848.github.io/araujo-advocacia/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://viniciusduarte848.github.io/araujo-advocacia/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

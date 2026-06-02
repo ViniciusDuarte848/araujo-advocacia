@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#C4728A">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Araujo Adv">
 <title>Araujo Advocacia — Sistema de Gestão</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#E8A0B0">
@@ -438,6 +444,34 @@ tbody tr:hover td{background:var(--pink-light);}
   .mobile-cards { display: none; }
   .table-card-wrap table { display: table; }
 }
+
+
+/* ===== MODAL COMPROMISSO VENCIDO ===== */
+#modal-vencido .modal { max-width: 420px; }
+.vencido-card {
+  background: var(--pink-light);
+  border: 1px solid var(--pink-mid);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+.vencido-card-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--gray-800);
+  margin-bottom: 4px;
+}
+.vencido-card-sub {
+  font-size: 12px;
+  color: var(--gray-600);
+  margin-bottom: 12px;
+}
+.vencido-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.vencido-actions .btn { flex: 1; min-width: 100px; justify-content: center; font-size: 12px; }
 
 </style>
 </head>
@@ -932,6 +966,24 @@ tbody tr:hover td{background:var(--pink-light);}
 </div>
 
 <!-- MODAL AGENDA -->
+
+<!-- MODAL COMPROMISSOS VENCIDOS -->
+<div class="modal-backdrop" id="modal-vencido">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-header">
+      <span class="modal-title">⚠️ Compromissos em aberto</span>
+      <button class="modal-close" onclick="closeModal('modal-vencido')">✕</button>
+    </div>
+    <div style="padding:1rem 0 0;">
+      <p style="font-size:13px;color:var(--gray-600);margin-bottom:14px;">Os compromissos abaixo já passaram. O que aconteceu?</p>
+      <div id="vencidos-list"></div>
+    </div>
+    <div class="modal-footer" style="margin-top:8px;">
+      <button class="btn btn-ghost" onclick="fecharVencidosPorHoje()">Lembrar amanhã</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal-agenda">
   <div class="modal">
     <div class="modal-header">
@@ -1045,6 +1097,15 @@ tbody tr:hover td{background:var(--pink-light);}
 <div id="toast"></div>
 
 <script>
+// ── Service Worker (PWA) ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => console.log('SW registrado:', reg.scope))
+      .catch(err => console.log('SW erro:', err));
+  });
+}
+
 const SUPABASE_URL = 'https://znqsnzkmncexhlwyuqpp.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_FBqcLGKMjofL54yTHjgNyw_BcmP00jw';
 const { createClient } = supabase;
@@ -1545,13 +1606,24 @@ async function loadAgenda() {
   if (error) { list.innerHTML = '<div class="loading">Erro.</div>'; return; }
   const items = data || [];
   if (!items.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum evento cadastrado.</p></div>'; return; }
+  const hojeStr = new Date().toISOString().split('T')[0];
   list.innerHTML = items.map(ev => {
     const dt = new Date(ev.data + 'T12:00:00');
-    return `<div class="agenda-item">
+    const vencido = ev.data < hojeStr && (!ev.status || ev.status === 'pendente');
+    const concluido = ev.status === 'concluido';
+    const reagendado = ev.status === 'reagendado';
+    const statusBadge = concluido
+      ? '<span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:20px;margin-left:6px;">✅ Concluído</span>'
+      : reagendado
+      ? '<span style="font-size:10px;background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:20px;margin-left:6px;">🔄 Reagendado</span>'
+      : vencido
+      ? '<span style="font-size:10px;background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:20px;margin-left:6px;">⚠️ Vencido</span>'
+      : '';
+    return `<div class="agenda-item" style="${vencido?'opacity:.75;':''}${concluido?'opacity:.6;':''}">
       <div class="agenda-date-box"><div class="agenda-day">${dt.getDate().toString().padStart(2,'0')}</div><div class="agenda-month">${dt.toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}</div></div>
       <div class="agenda-dot" style="background:${tipoColors[ev.tipo]||'#9A8890'}"></div>
       <div class="agenda-info">
-        <div class="agenda-title-text">${ev.titulo}</div>
+        <div class="agenda-title-text">${ev.titulo}${statusBadge}</div>
         <div class="agenda-desc">${tipoLabels[ev.tipo]||ev.tipo}${ev.clientes?.nome?' · '+ev.clientes.nome:''}${ev.descricao?' · '+ev.descricao:''}</div>
       </div>
       <div class="agenda-time">${ev.horario?ev.horario.substring(0,5):'—'}</div>
@@ -2243,22 +2315,41 @@ async function loadNotificacoes() {
     novasPush.push({ key: tipo + '_fin_' + f.id, titulo, desc });
   });
 
-  // ── AGENDA: hoje e amanhã ──
+  // ── AGENDA: vencidos + hoje + amanhã + 3 dias ──
+  const em3dias = new Date(); em3dias.setDate(em3dias.getDate() + 3);
+  const em3Str = em3dias.toISOString().split('T')[0];
+  // Ontem para pegar vencidos
+  const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+  const ontemStr = ontem.toISOString().split('T')[0];
+
   const { data: ags } = await sb.from('agenda')
     .select('*, clientes(nome)')
-    .gte('data', hoje)
-    .lte('data', amanhaStr)
+    .gte('data', ontemStr)
+    .lte('data', em3Str)
+    .in('status', ['pendente'])
     .order('data').order('horario');
 
   (ags || []).forEach(a => {
     const tipoLabel = {audiencia:'Audiência',prazo:'Prazo',reuniao:'Reunião',outro:'Evento'}[a.tipo] || 'Compromisso';
-    const isHoje = a.data === hoje;
-    const titulo = '📅 ' + tipoLabel + (isHoje ? ' hoje' : ' amanhã') + ': ' + a.titulo;
+    let tipo, prioridade, titulo;
+    if (a.data < hoje) {
+      tipo = 'urgente'; prioridade = 0;
+      titulo = '⚠️ Vencido: ' + a.titulo;
+    } else if (a.data === hoje) {
+      tipo = 'agenda'; prioridade = 1;
+      titulo = '📅 ' + tipoLabel + ' hoje: ' + a.titulo;
+    } else if (a.data === amanhaStr) {
+      tipo = 'amanha'; prioridade = 2;
+      titulo = '⏰ ' + tipoLabel + ' amanhã: ' + a.titulo;
+    } else {
+      tipo = 'aviso'; prioridade = 3;
+      titulo = '📌 ' + tipoLabel + ' em ' + Math.round((new Date(a.data+'T12:00:00') - new Date()) / 86400000) + ' dias: ' + a.titulo;
+    }
     const desc = (a.horario ? a.horario.substring(0,5) + ' · ' : '') +
                  (a.clientes?.nome || '') +
                  (a.descricao ? ' · ' + a.descricao : '');
-    notifData.push({ tipo: 'agenda', titulo, desc, prioridade: isHoje ? 1 : 2 });
-    novasPush.push({ key: 'agenda_' + a.id, titulo, desc });
+    notifData.push({ tipo, titulo, desc, prioridade, agendaId: a.id });
+    novasPush.push({ key: 'agenda_' + a.id + '_' + a.data, titulo, desc });
   });
 
   // Ordenar por prioridade
@@ -2280,16 +2371,122 @@ async function iniciarSistemaPush() {
   const ok = await solicitarPermissaoPush();
   if (ok) {
     console.log('Push notifications ativadas ✅');
+    // Enviar compromissos ao Service Worker para notificações nativas
+    if (navigator.serviceWorker.controller) {
+      const { data: agendaSW } = await sb.from('agenda')
+        .select('id, titulo, data, horario')
+        .eq('user_id', currentUser.id)
+        .eq('status', 'pendente')
+        .gte('data', new Date().toISOString().split('T')[0]);
+      navigator.serviceWorker.controller.postMessage({
+        type: 'SCHEDULE_CHECK',
+        compromissos: agendaSW || []
+      });
+    }
   }
-  // Verificar a cada 1 hora
+  // Verificar compromissos vencidos ao abrir
+  setTimeout(() => checkVencidos(), 2500);
+  // Verificar notificações a cada 1 hora
   setInterval(() => {
     if (currentUser) {
-      _ultimasNotifEnviadas.clear(); // limpar cache para renotificar após 1h
+      _ultimasNotifEnviadas.clear();
       loadNotificacoes();
+      checkVencidos();
     }
   }, 60 * 60 * 1000);
 }
 
+
+
+// ============================================================
+// COMPROMISSOS VENCIDOS — modal de resolução
+// ============================================================
+const VENCIDOS_SNOOZE_KEY = 'vencidos_snooze_ate';
+
+async function checkVencidos() {
+  // Verificar se o usuário pediu "lembrar amanhã"
+  const snoozeAte = localStorage.getItem(VENCIDOS_SNOOZE_KEY);
+  const hoje = new Date().toISOString().split('T')[0];
+  if (snoozeAte && snoozeAte >= hoje) return; // ainda em snooze
+
+  const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
+  const ontemStr = ontem.toISOString().split('T')[0];
+
+  // Buscar compromissos vencidos há mais de 1 dia ainda pendentes
+  const { data } = await sb.from('agenda')
+    .select('*, clientes(nome)')
+    .lt('data', ontemStr)  // antes de ontem = mais de 1 dia vencido
+    .eq('status', 'pendente')
+    .eq('user_id', currentUser.id)
+    .order('data');
+
+  if (!data || !data.length) return;
+
+  // Montar lista no modal
+  const list = document.getElementById('vencidos-list');
+  const tipoLabel = {audiencia:'Audiência',prazo:'Prazo',reuniao:'Reunião',outro:'Evento'};
+  list.innerHTML = data.map(ev => {
+    const dt = new Date(ev.data + 'T12:00:00');
+    const diasAtras = Math.round((new Date() - dt) / 86400000);
+    const sub = (tipoLabel[ev.tipo]||'Compromisso') +
+      (ev.clientes?.nome ? ' · ' + ev.clientes.nome : '') +
+      ' · ' + dt.toLocaleDateString('pt-BR') +
+      ' (' + diasAtras + ' dia' + (diasAtras>1?'s':'') + ' atrás)';
+    return `<div class="vencido-card">
+      <div class="vencido-card-title">${ev.titulo}</div>
+      <div class="vencido-card-sub">${sub}</div>
+      <div class="vencido-actions">
+        <button class="btn btn-sm" style="background:var(--green,#1D9E75);color:#fff;" onclick="marcarConcluido('${ev.id}')">✅ Concluído</button>
+        <button class="btn btn-sm btn-outline" onclick="reagendarEvento('${ev.id}')">🔄 Reagendar</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  openModal('modal-vencido');
+}
+
+async function marcarConcluido(id) {
+  await sb.from('agenda').update({ status: 'concluido' }).eq('id', id);
+  // remover card do modal
+  const cards = document.querySelectorAll('#vencidos-list .vencido-card');
+  for (const c of cards) {
+    if (c.querySelector('button[onclick*="' + id + '"]')) {
+      c.remove(); break;
+    }
+  }
+  toast('Compromisso marcado como concluído! ✅');
+  if (!document.querySelectorAll('#vencidos-list .vencido-card').length) {
+    closeModal('modal-vencido');
+  }
+  loadAgenda(); loadNotificacoes();
+}
+
+async function reagendarEvento(id) {
+  closeModal('modal-vencido');
+  await sb.from('agenda').update({ status: 'reagendado' }).eq('id', id);
+  // Abrir modal de novo evento com dados preenchidos
+  const { data } = await sb.from('agenda').select('*').eq('id', id).single();
+  if (data) {
+    if (!allClientes.length) await loadClientes();
+    document.getElementById('modal-agenda-title').textContent = 'Reagendar Evento';
+    document.getElementById('agenda-edit-id').value = '';  // novo registro
+    document.getElementById('agenda-titulo').value = data.titulo || '';
+    document.getElementById('agenda-data').value = '';  // deixar em branco para escolher nova data
+    document.getElementById('agenda-hora').value = data.horario || '';
+    document.getElementById('agenda-tipo').value = data.tipo || 'audiencia';
+    document.getElementById('agenda-cliente').value = data.cliente_id || '';
+    document.getElementById('agenda-desc').value = data.descricao || '';
+    openModal('modal-agenda');
+  }
+  loadAgenda(); loadNotificacoes();
+}
+
+function fecharVencidosPorHoje() {
+  // Snooze até amanhã
+  const amanha = new Date(); amanha.setDate(amanha.getDate() + 1);
+  localStorage.setItem(VENCIDOS_SNOOZE_KEY, amanha.toISOString().split('T')[0]);
+  closeModal('modal-vencido');
+}
 
 // ---- WHATSAPP ----
 function enviarWhatsApp() {

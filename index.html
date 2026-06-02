@@ -235,21 +235,12 @@ tbody tr:hover td{background:var(--pink-light);}
 /* ===== MAIN MOBILE ===== */
 @media(max-width:768px){
   .mob-header{display:flex;}
-  .main{padding-bottom:72px !important;}
-  .bnav{
-    display:block !important;
-    position:fixed !important;
-    bottom:0; left:0; right:0;
-    z-index:750;
-    background:var(--white);
-    border-top:1px solid var(--border);
-    box-shadow:0 -2px 12px rgba(0,0,0,.08);
-  }
+  .bnav{display:none!important;}
   .notif-wrapper{display:none!important;}
   .notif-panel{
     width:calc(100vw - 32px)!important;
     right:16px!important;
-    bottom:72px!important;
+    bottom:16px!important;
     z-index:800!important;
     max-height:65vh!important;
     overflow-y:auto!important;

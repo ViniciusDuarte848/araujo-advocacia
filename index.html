@@ -734,13 +734,29 @@ tbody tr:hover td{background:var(--pink-light);}
       <div class="page" id="page-agenda">
         <div class="page-header">
           <div class="page-title">Agenda</div>
-          <button class="btn btn-pink" onclick="openNovoEvento()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Novo evento
-          </button>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" onclick="toggleHistorico()" id="btn-historico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              Histórico
+            </button>
+            <button class="btn btn-pink" onclick="openNovoEvento()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Novo evento
+            </button>
+          </div>
         </div>
         <div class="card">
           <div id="list-agenda"><div class="loading">carregando...</div></div>
+        </div>
+        <!-- HISTÓRICO (oculto por padrão) -->
+        <div id="section-historico" style="display:none;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;">
+            <span style="font-size:13px;font-weight:600;color:var(--gray-600);">📜 Histórico de compromissos</span>
+            <button class="btn btn-ghost btn-sm" onclick="toggleHistorico()">Fechar</button>
+          </div>
+          <div class="card">
+            <div id="list-historico"><div class="loading">carregando...</div></div>
+          </div>
         </div>
       </div>
 
@@ -968,6 +984,7 @@ tbody tr:hover td{background:var(--pink-light);}
 <!-- MODAL AGENDA -->
 
 <!-- MODAL COMPROMISSOS VENCIDOS -->
+<!-- Modal: compromissos em aberto ao abrir app -->
 <div class="modal-backdrop" id="modal-vencido">
   <div class="modal" style="max-width:440px;">
     <div class="modal-header">
@@ -980,6 +997,57 @@ tbody tr:hover td{background:var(--pink-light);}
     </div>
     <div class="modal-footer" style="margin-top:8px;">
       <button class="btn btn-ghost" onclick="fecharVencidosPorHoje()">Lembrar amanhã</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: resolução individual (botão ✓ em cada item) -->
+<div class="modal-backdrop" id="modal-resolucao">
+  <div class="modal" style="max-width:420px;">
+    <div class="modal-header">
+      <span class="modal-title" id="resolucao-titulo">O que aconteceu?</span>
+      <button class="modal-close" onclick="closeModal('modal-resolucao')">✕</button>
+    </div>
+    <input type="hidden" id="resolucao-id">
+    <div style="padding:1rem 0;">
+      <p style="font-size:13px;color:var(--gray-600);margin-bottom:16px;" id="resolucao-sub"></p>
+      <!-- Opção 1: Realizado -->
+      <div class="vencido-card" style="cursor:pointer;transition:box-shadow .15s;" onclick="confirmarConcluido()" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow=''">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">✅</span>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--gray-800);">Realizado / Concluído</div>
+            <div style="font-size:12px;color:var(--gray-600);">O compromisso foi realizado. Some da agenda e vai pro histórico.</div>
+          </div>
+        </div>
+      </div>
+      <!-- Opção 2: Reagendar -->
+      <div class="vencido-card" style="cursor:pointer;transition:box-shadow .15s;margin-top:10px;" onclick="mostrarFormReagendar()" onmouseover="this.style.boxShadow='0 4px 16px rgba(0,0,0,.1)'" onmouseout="this.style.boxShadow=''">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:22px;">🔄</span>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--gray-800);">Reagendar para outra data</div>
+            <div style="font-size:12px;color:var(--gray-600);">Escolhe nova data. Some este e cria novo na data escolhida.</div>
+          </div>
+        </div>
+      </div>
+      <!-- Form de reagendamento (oculto) -->
+      <div id="form-reagendar" style="display:none;margin-top:12px;padding:12px;background:var(--pink-light);border-radius:10px;border:1px solid var(--pink-mid);">
+        <div class="form-row" style="margin-bottom:10px;">
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:12px;">Nova data</label>
+            <input type="date" id="reagendar-data">
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label style="font-size:12px;">Horário (opcional)</label>
+            <input type="time" id="reagendar-hora">
+          </div>
+        </div>
+        <button class="btn btn-pink" style="width:100%;justify-content:center;" onclick="confirmarReagendar()">Confirmar reagendamento</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modal-resolucao')">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1602,24 +1670,28 @@ const tipoLabels = { audiencia:'Audiência', prazo:'Prazo', reuniao:'Reunião', 
 async function loadAgenda() {
   const list = document.getElementById('list-agenda');
   list.innerHTML = '<div class="loading">carregando...</div>';
-  const { data, error } = await sb.from('agenda').select('*, clientes(nome)').order('data', { ascending:true });
+  // Só mostra pendentes (inclui vencidos pendentes para resolução)
+  const { data, error } = await sb.from('agenda')
+    .select('*, clientes(nome)')
+    .in('status', ['pendente'])
+    .order('data', { ascending: true });
   if (error) { list.innerHTML = '<div class="loading">Erro.</div>'; return; }
   const items = data || [];
-  if (!items.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum evento cadastrado.</p></div>'; return; }
+  if (!items.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum evento pendente. 🎉</p></div>'; return; }
   const hojeStr = new Date().toISOString().split('T')[0];
+  const editSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const delSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>`;
+  const checkSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
   list.innerHTML = items.map(ev => {
     const dt = new Date(ev.data + 'T12:00:00');
-    const vencido = ev.data < hojeStr && (!ev.status || ev.status === 'pendente');
-    const concluido = ev.status === 'concluido';
-    const reagendado = ev.status === 'reagendado';
-    const statusBadge = concluido
-      ? '<span style="font-size:10px;background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:20px;margin-left:6px;">✅ Concluído</span>'
-      : reagendado
-      ? '<span style="font-size:10px;background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:20px;margin-left:6px;">🔄 Reagendado</span>'
-      : vencido
+    const vencido = ev.data < hojeStr;
+    const isHoje = ev.data === hojeStr;
+    const statusBadge = vencido
       ? '<span style="font-size:10px;background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:20px;margin-left:6px;">⚠️ Vencido</span>'
+      : isHoje
+      ? '<span style="font-size:10px;background:#FFF8E1;color:#854F0B;padding:2px 8px;border-radius:20px;margin-left:6px;">📅 Hoje</span>'
       : '';
-    return `<div class="agenda-item" style="${vencido?'opacity:.75;':''}${concluido?'opacity:.6;':''}">
+    return `<div class="agenda-item" style="${vencido?'border-left:3px solid #EF4444;':''}${isHoje?'border-left:3px solid #F59E0B;':''}">
       <div class="agenda-date-box"><div class="agenda-day">${dt.getDate().toString().padStart(2,'0')}</div><div class="agenda-month">${dt.toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}</div></div>
       <div class="agenda-dot" style="background:${tipoColors[ev.tipo]||'#9A8890'}"></div>
       <div class="agenda-info">
@@ -1627,8 +1699,9 @@ async function loadAgenda() {
         <div class="agenda-desc">${tipoLabels[ev.tipo]||ev.tipo}${ev.clientes?.nome?' · '+ev.clientes.nome:''}${ev.descricao?' · '+ev.descricao:''}</div>
       </div>
       <div class="agenda-time">${ev.horario?ev.horario.substring(0,5):'—'}</div>
-      <button class="btn btn-sm btn-icon" onclick="editAgenda('${ev.id}')" title="Editar" style="color:var(--pink-dark);margin-right:2px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-      <button class="btn btn-sm btn-icon" onclick="deleteAgenda('${ev.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+      ${(vencido||isHoje) ? `<button class="btn btn-sm btn-icon" onclick="abrirResolucao('${ev.id}')" title="Resolver" style="color:#1D9E75;">${checkSvg}</button>` : ''}
+      <button class="btn btn-sm btn-icon" onclick="editAgenda('${ev.id}')" title="Editar" style="color:var(--pink-dark);margin-right:2px;">${editSvg}</button>
+      <button class="btn btn-sm btn-icon" onclick="deleteAgenda('${ev.id}')">${delSvg}</button>
     </div>`;
   }).join('');
 }
@@ -2401,41 +2474,147 @@ async function iniciarSistemaPush() {
 // ============================================================
 const VENCIDOS_SNOOZE_KEY = 'vencidos_snooze_ate';
 
+// ============================================================
+// RESOLUÇÃO DE COMPROMISSOS
+// ============================================================
+
+// Abre modal de resolução ao clicar no ✓ de um item
+async function abrirResolucao(id) {
+  const { data: ev } = await sb.from('agenda').select('*, clientes(nome)').eq('id', id).single();
+  if (!ev) return;
+  const dt = new Date(ev.data + 'T12:00:00');
+  const tipoLabel = {audiencia:'Audiência',prazo:'Prazo',reuniao:'Reunião',outro:'Evento'};
+  document.getElementById('resolucao-id').value = id;
+  document.getElementById('resolucao-titulo').textContent = ev.titulo;
+  document.getElementById('resolucao-sub').textContent =
+    (tipoLabel[ev.tipo]||'Compromisso') +
+    (ev.clientes?.nome ? ' · ' + ev.clientes.nome : '') +
+    ' · ' + dt.toLocaleDateString('pt-BR') +
+    (ev.horario ? ' às ' + ev.horario.substring(0,5) : '');
+  // Resetar form reagendar
+  document.getElementById('form-reagendar').style.display = 'none';
+  document.getElementById('reagendar-data').value = '';
+  document.getElementById('reagendar-hora').value = '';
+  openModal('modal-resolucao');
+}
+
+// Confirmar como concluído
+async function confirmarConcluido() {
+  const id = document.getElementById('resolucao-id').value;
+  await sb.from('agenda').update({ status: 'concluido' }).eq('id', id);
+  closeModal('modal-resolucao');
+  toast('✅ Compromisso concluído! Movido para o histórico.');
+  loadAgenda(); loadNotificacoes();
+}
+
+// Mostrar form de reagendamento
+function mostrarFormReagendar() {
+  const form = document.getElementById('form-reagendar');
+  form.style.display = form.style.display === 'none' ? 'block' : 'none';
+}
+
+// Confirmar reagendamento
+async function confirmarReagendar() {
+  const id = document.getElementById('resolucao-id').value;
+  const novaData = document.getElementById('reagendar-data').value;
+  const novaHora = document.getElementById('reagendar-hora').value;
+  if (!novaData) { toast('Escolha a nova data.', true); return; }
+  // Buscar dados do evento original
+  const { data: ev } = await sb.from('agenda').select('*').eq('id', id).single();
+  if (!ev) return;
+  // Marcar original como reagendado
+  await sb.from('agenda').update({ status: 'reagendado' }).eq('id', id);
+  // Criar novo registro na nova data
+  const { error } = await sb.from('agenda').insert({
+    titulo: ev.titulo,
+    data: novaData,
+    horario: novaHora || ev.horario || null,
+    tipo: ev.tipo,
+    cliente_id: ev.cliente_id || null,
+    descricao: ev.descricao || null,
+    user_id: currentUser.id,
+    status: 'pendente'
+  });
+  if (error) { toast('Erro ao reagendar: ' + error.message, true); return; }
+  closeModal('modal-resolucao');
+  toast('🔄 Reagendado! Novo compromisso criado na data escolhida.');
+  loadAgenda(); loadNotificacoes();
+}
+
+// ============================================================
+// HISTÓRICO
+// ============================================================
+let historicoAberto = false;
+
+async function toggleHistorico() {
+  const section = document.getElementById('section-historico');
+  const btn = document.getElementById('btn-historico');
+  historicoAberto = !historicoAberto;
+  section.style.display = historicoAberto ? 'block' : 'none';
+  btn.style.background = historicoAberto ? 'var(--pink-light)' : '';
+  if (historicoAberto) await loadHistorico();
+}
+
+async function loadHistorico() {
+  const list = document.getElementById('list-historico');
+  list.innerHTML = '<div class="loading">carregando...</div>';
+  const { data, error } = await sb.from('agenda')
+    .select('*, clientes(nome)')
+    .in('status', ['concluido', 'reagendado'])
+    .eq('user_id', currentUser.id)
+    .order('data', { ascending: false });
+  if (error || !data?.length) {
+    list.innerHTML = '<div class="empty-state"><p>Nenhum compromisso no histórico ainda.</p></div>';
+    return;
+  }
+  const tipoLabel = {audiencia:'Audiência',prazo:'Prazo',reuniao:'Reunião',outro:'Evento'};
+  list.innerHTML = data.map(ev => {
+    const dt = new Date(ev.data + 'T12:00:00');
+    const badge = ev.status === 'concluido'
+      ? '<span style="font-size:11px;background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:20px;">✅ Concluído</span>'
+      : '<span style="font-size:11px;background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:20px;">🔄 Reagendado</span>';
+    return `<div class="agenda-item" style="opacity:.8;">
+      <div class="agenda-date-box"><div class="agenda-day">${dt.getDate().toString().padStart(2,'0')}</div><div class="agenda-month">${dt.toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}</div></div>
+      <div class="agenda-dot" style="background:${tipoColors[ev.tipo]||'#9A8890'}"></div>
+      <div class="agenda-info">
+        <div class="agenda-title-text">${ev.titulo} ${badge}</div>
+        <div class="agenda-desc">${tipoLabel[ev.tipo]||ev.tipo}${ev.clientes?.nome?' · '+ev.clientes.nome:''}${ev.descricao?' · '+ev.descricao:''}</div>
+      </div>
+      <div class="agenda-time">${ev.horario?ev.horario.substring(0,5):'—'}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// MODAL DE VENCIDOS (abre automático ao entrar no app)
+// ============================================================
 async function checkVencidos() {
-  // Verificar se o usuário pediu "lembrar amanhã"
   const snoozeAte = localStorage.getItem(VENCIDOS_SNOOZE_KEY);
   const hoje = new Date().toISOString().split('T')[0];
-  if (snoozeAte && snoozeAte >= hoje) return; // ainda em snooze
+  if (snoozeAte && snoozeAte >= hoje) return;
 
   const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
   const ontemStr = ontem.toISOString().split('T')[0];
 
-  // Buscar compromissos vencidos há mais de 1 dia ainda pendentes
   const { data } = await sb.from('agenda')
     .select('*, clientes(nome)')
-    .lt('data', ontemStr)  // antes de ontem = mais de 1 dia vencido
+    .lt('data', ontemStr)
     .eq('status', 'pendente')
     .eq('user_id', currentUser.id)
     .order('data');
 
   if (!data || !data.length) return;
 
-  // Montar lista no modal
   const list = document.getElementById('vencidos-list');
   const tipoLabel = {audiencia:'Audiência',prazo:'Prazo',reuniao:'Reunião',outro:'Evento'};
   list.innerHTML = data.map(ev => {
     const dt = new Date(ev.data + 'T12:00:00');
     const diasAtras = Math.round((new Date() - dt) / 86400000);
-    const sub = (tipoLabel[ev.tipo]||'Compromisso') +
-      (ev.clientes?.nome ? ' · ' + ev.clientes.nome : '') +
-      ' · ' + dt.toLocaleDateString('pt-BR') +
-      ' (' + diasAtras + ' dia' + (diasAtras>1?'s':'') + ' atrás)';
     return `<div class="vencido-card">
       <div class="vencido-card-title">${ev.titulo}</div>
-      <div class="vencido-card-sub">${sub}</div>
+      <div class="vencido-card-sub">${tipoLabel[ev.tipo]||'Compromisso'}${ev.clientes?.nome?' · '+ev.clientes.nome:''} · ${dt.toLocaleDateString('pt-BR')} (${diasAtras} dia${diasAtras>1?'s':''} atrás)</div>
       <div class="vencido-actions">
-        <button class="btn btn-sm" style="background:var(--green,#1D9E75);color:#fff;" onclick="marcarConcluido('${ev.id}')">✅ Concluído</button>
-        <button class="btn btn-sm btn-outline" onclick="reagendarEvento('${ev.id}')">🔄 Reagendar</button>
+        <button class="btn btn-sm" style="background:#1D9E75;color:#fff;" onclick="closeModal('modal-vencido');abrirResolucao('${ev.id}')">Resolver →</button>
       </div>
     </div>`;
   }).join('');
@@ -2443,44 +2622,7 @@ async function checkVencidos() {
   openModal('modal-vencido');
 }
 
-async function marcarConcluido(id) {
-  await sb.from('agenda').update({ status: 'concluido' }).eq('id', id);
-  // remover card do modal
-  const cards = document.querySelectorAll('#vencidos-list .vencido-card');
-  for (const c of cards) {
-    if (c.querySelector('button[onclick*="' + id + '"]')) {
-      c.remove(); break;
-    }
-  }
-  toast('Compromisso marcado como concluído! ✅');
-  if (!document.querySelectorAll('#vencidos-list .vencido-card').length) {
-    closeModal('modal-vencido');
-  }
-  loadAgenda(); loadNotificacoes();
-}
-
-async function reagendarEvento(id) {
-  closeModal('modal-vencido');
-  await sb.from('agenda').update({ status: 'reagendado' }).eq('id', id);
-  // Abrir modal de novo evento com dados preenchidos
-  const { data } = await sb.from('agenda').select('*').eq('id', id).single();
-  if (data) {
-    if (!allClientes.length) await loadClientes();
-    document.getElementById('modal-agenda-title').textContent = 'Reagendar Evento';
-    document.getElementById('agenda-edit-id').value = '';  // novo registro
-    document.getElementById('agenda-titulo').value = data.titulo || '';
-    document.getElementById('agenda-data').value = '';  // deixar em branco para escolher nova data
-    document.getElementById('agenda-hora').value = data.horario || '';
-    document.getElementById('agenda-tipo').value = data.tipo || 'audiencia';
-    document.getElementById('agenda-cliente').value = data.cliente_id || '';
-    document.getElementById('agenda-desc').value = data.descricao || '';
-    openModal('modal-agenda');
-  }
-  loadAgenda(); loadNotificacoes();
-}
-
 function fecharVencidosPorHoje() {
-  // Snooze até amanhã
   const amanha = new Date(); amanha.setDate(amanha.getDate() + 1);
   localStorage.setItem(VENCIDOS_SNOOZE_KEY, amanha.toISOString().split('T')[0]);
   closeModal('modal-vencido');

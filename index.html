@@ -1671,10 +1671,11 @@ async function loadAgenda() {
   const list = document.getElementById('list-agenda');
   list.innerHTML = '<div class="loading">carregando...</div>';
   // Só mostra pendentes (inclui vencidos pendentes para resolução)
-  const { data, error } = await sb.from('agenda')
+  // Aceita 'pendente' e null (registros criados antes da coluna status existir)
+  const { data: allData, error } = await sb.from('agenda')
     .select('*, clientes(nome)')
-    .in('status', ['pendente'])
     .order('data', { ascending: true });
+  const data = (allData || []).filter(ev => !ev.status || ev.status === 'pendente');
   if (error) { list.innerHTML = '<div class="loading">Erro.</div>'; return; }
   const items = data || [];
   if (!items.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum evento pendente. 🎉</p></div>'; return; }
@@ -2393,12 +2394,12 @@ async function loadNotificacoes() {
   const ontem2 = new Date(agora); ontem2.setDate(ontem2.getDate() - 1);
   const ontemStr = ontem2.toISOString().split('T')[0];
 
-  const { data: ags } = await sb.from('agenda')
+  const { data: agsAll } = await sb.from('agenda')
     .select('*, clientes(nome)')
     .gte('data', ontemStr)
     .lte('data', em3Str)
-    .in('status', ['pendente'])
     .order('data').order('horario');
+  const ags = (agsAll || []).filter(a => !a.status || a.status === 'pendente');
 
   (ags || []).forEach(a => {
     const tipoLabel = {audiencia:'Audiência',prazo:'Prazo',reuniao:'Reunião',outro:'Evento'}[a.tipo] || 'Compromisso';
@@ -2561,9 +2562,13 @@ async function loadHistorico() {
   const { data, error } = await sb.from('agenda')
     .select('*, clientes(nome)')
     .in('status', ['concluido', 'reagendado'])
-    .eq('user_id', currentUser.id)
     .order('data', { ascending: false });
-  if (error || !data?.length) {
+  if (error) {
+    list.innerHTML = '<div class="empty-state"><p>Erro ao carregar histórico.</p></div>';
+    console.error('Histórico erro:', error);
+    return;
+  }
+  if (!data?.length) {
     list.innerHTML = '<div class="empty-state"><p>Nenhum compromisso no histórico ainda.</p></div>';
     return;
   }
@@ -2596,12 +2601,12 @@ async function checkVencidos() {
   const ontem = new Date(); ontem.setDate(ontem.getDate() - 1);
   const ontemStr = ontem.toISOString().split('T')[0];
 
-  const { data } = await sb.from('agenda')
+  const { data: allVenc } = await sb.from('agenda')
     .select('*, clientes(nome)')
     .lt('data', ontemStr)
-    .eq('status', 'pendente')
     .eq('user_id', currentUser.id)
     .order('data');
+  const data = (allVenc || []).filter(ev => !ev.status || ev.status === 'pendente');
 
   if (!data || !data.length) return;
 

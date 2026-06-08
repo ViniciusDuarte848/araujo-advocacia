@@ -1080,9 +1080,10 @@ tbody tr:hover td{background:var(--pink-light);}
 <div class="modal-backdrop" id="modal-financeiro">
   <div class="modal">
     <div class="modal-header">
-      <span class="modal-title">Novo lançamento</span>
+      <span class="modal-title" id="fin-modal-title">Novo lançamento</span>
       <button class="modal-close" onclick="closeModal('modal-financeiro')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
+    <input type="hidden" id="fin-edit-id">
     <div class="form-group"><label>Descrição</label><input type="text" id="fin-desc" placeholder="Ex: Honorários — Ana Clara Silva"></div>
     <div class="form-row">
       <div class="form-group"><label>Cliente (opcional)</label><select id="fin-cliente"><option value="">— nenhum —</option></select></div>
@@ -1099,23 +1100,23 @@ tbody tr:hover td{background:var(--pink-light);}
       <!-- PAGAMENTO ÚNICO -->
       <div id="fin-box-unico">
         <div class="form-row">
-          <div class="form-group"><label>Valor (R$)</label><input type="number" id="fin-valor-unico" placeholder="0,00" step="0.01" min="0"></div>
+          <div class="form-group"><label>Valor (R$)</label><input type="text" id="fin-valor-unico" placeholder="0,00" oninput="mascaraMoeda(this)"></div>
           <div class="form-group"><label>Data de vencimento</label><input type="date" id="fin-venc-unico"></div>
         </div>
       </div>
 
-      <!-- PARCELADO -->
+      <!-- PARCELADO — valor total primeiro -->
       <div id="fin-box-parcelas" style="display:none">
         <div class="form-row">
-          <div class="form-group"><label>Tem entrada?</label><select id="fin-tem-entrada" onchange="calcParcelas()"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
-          <div class="form-group" id="fin-box-entrada-val" style="display:none"><label>Valor da entrada (R$)</label><input type="number" id="fin-val-entrada" placeholder="0,00" step="0.01" min="0" oninput="calcParcelas()"></div>
-        </div>
-        <div class="form-row" id="fin-box-entrada-data" style="display:none">
-          <div class="form-group"><label>Data da entrada</label><input type="date" id="fin-data-entrada"></div>
+          <div class="form-group"><label>Valor total (R$)</label><input type="text" id="fin-valor-total" placeholder="0,00" oninput="mascaraMoeda(this);calcParcelas()"></div>
+          <div class="form-group"><label>Data 1ª parcela</label><input type="date" id="fin-data-primeira" oninput="calcParcelas()"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Valor total (R$)</label><input type="number" id="fin-valor-total" placeholder="0,00" step="0.01" min="0" oninput="calcParcelas()"></div>
-          <div class="form-group"><label>Data 1ª parcela</label><input type="date" id="fin-data-primeira" oninput="calcParcelas()"></div>
+          <div class="form-group"><label>Tem entrada?</label><select id="fin-tem-entrada" onchange="calcParcelas()"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
+          <div class="form-group" id="fin-box-entrada-val" style="display:none"><label>Valor da entrada (R$)</label><input type="text" id="fin-val-entrada" placeholder="0,00" oninput="mascaraMoeda(this);calcParcelas()"></div>
+        </div>
+        <div class="form-row" id="fin-box-entrada-data" style="display:none">
+          <div class="form-group"><label>Data da entrada</label><input type="date" id="fin-data-entrada" oninput="calcParcelas()"></div>
         </div>
         <div id="fin-preview-parcelas"></div>
       </div>
@@ -1776,24 +1777,44 @@ function toggleEntrada(val) {
 }
 document.getElementById('fin-tem-entrada').addEventListener('change', function(){ toggleEntrada(this.value); });
 
+// Máscara de moeda brasileira
+function mascaraMoeda(el) {
+  let v = el.value.replace(/\D/g, '');
+  v = (parseInt(v) / 100).toFixed(2);
+  el.value = isNaN(v) ? '' : v.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+function parseMoeda(str) {
+  if (!str) return 0;
+  return parseFloat(String(str).replace(/\./g, '').replace(',', '.')) || 0;
+}
+
 function calcParcelas() {
   const temEntrada = document.getElementById('fin-tem-entrada').value === 'sim';
-  const valTotal = parseFloat(document.getElementById('fin-valor-total').value) || 0;
-  const valEntrada = temEntrada ? (parseFloat(document.getElementById('fin-val-entrada').value) || 0) : 0;
+  const valTotal = parseMoeda(document.getElementById('fin-valor-total').value);
+  const valEntrada = temEntrada ? parseMoeda(document.getElementById('fin-val-entrada').value) : 0;
   const numParcelas = parseInt(document.getElementById('fin-num-parcelas').value) || 1;
   const dataPrimeira = document.getElementById('fin-data-primeira').value;
   const preview = document.getElementById('fin-preview-parcelas');
   if (!valTotal || !dataPrimeira) { preview.innerHTML = ''; return; }
   const restante = valTotal - valEntrada;
-  const valParcela = restante > 0 ? restante / numParcelas : 0;
-  let html = '<div class="parcela-preview">';
+  const valParcela = restante > 0 ? Math.round(restante / numParcelas * 100) / 100 : 0;
+  let html = '<div class="parcela-preview" style="margin-top:12px;">';
+  html += '<div style="font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:8px;">✏️ Revise e ajuste as datas se necessário:</div>';
   if (temEntrada && valEntrada > 0) {
     const dataEnt = document.getElementById('fin-data-entrada').value;
-    html += `<div class="parcela-line"><span>Entrada</span><span>${fmtMoney(valEntrada)} — ${dataEnt ? fmtDate(dataEnt) : '—'}</span></div>`;
+    html += `<div class="parcela-line" style="align-items:center;">
+      <span style="min-width:90px;">Entrada</span>
+      <span style="font-weight:600;min-width:90px;">${fmtMoney(valEntrada)}</span>
+      <input type="date" class="parcela-data-edit" data-idx="entrada" value="${dataEnt||''}" style="border:1px solid var(--border-md);border-radius:6px;padding:4px 8px;font-size:12px;flex:1;">
+    </div>`;
   }
   for (let i = 0; i < numParcelas; i++) {
     const dt = addMonths(dataPrimeira, i);
-    html += `<div class="parcela-line"><span>Parcela ${i+1}/${numParcelas}</span><span>${fmtMoney(valParcela)} — ${fmtDate(dt)}</span></div>`;
+    html += `<div class="parcela-line" style="align-items:center;">
+      <span style="min-width:90px;">Parcela ${i+1}/${numParcelas}</span>
+      <span style="font-weight:600;min-width:90px;">${fmtMoney(valParcela)}</span>
+      <input type="date" class="parcela-data-edit" data-idx="${i}" value="${dt}" style="border:1px solid var(--border-md);border-radius:6px;padding:4px 8px;font-size:12px;flex:1;">
+    </div>`;
   }
   html += '</div>';
   preview.innerHTML = html;
@@ -1910,6 +1931,9 @@ function renderFinanceiro(items) {
         <button class="btn btn-sm btn-icon" onclick="marcarRecebido('${f.id}','${f.status}')" title="${f.status==='recebido'?'Marcar como pendente':'Marcar como recebido'}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
         </button>
+        <button class="btn btn-sm btn-icon" onclick='editFinanceiro(${JSON.stringify(f)})' title="Editar" style="color:var(--pink-dark);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
         <button class="btn btn-sm btn-icon" onclick="deleteFinanceiro('${f.id}')" title="Excluir">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
         </button>
@@ -1928,6 +1952,8 @@ async function marcarRecebido(id, statusAtual) {
 
 function openNovoLancamento() {
   if (!allClientes.length) loadClientes();
+  document.getElementById('fin-edit-id').value = '';
+  document.getElementById('fin-modal-title').textContent = 'Novo lançamento';
   document.getElementById('fin-tem-parcelas').value = 'nao';
   document.getElementById('fin-tem-entrada').value = 'nao';
   toggleParcelas('nao');
@@ -1936,36 +1962,78 @@ function openNovoLancamento() {
   document.getElementById('fin-num-parcelas').value = 1;
   document.getElementById('fin-preview-parcelas').innerHTML = '';
   document.getElementById('fin-status').value = 'pendente';
+  document.getElementById('fin-cliente').value = '';
+  openModal('modal-financeiro');
+}
+
+function editFinanceiro(f) {
+  if (!allClientes.length) loadClientes();
+  document.getElementById('fin-edit-id').value = f.id;
+  document.getElementById('fin-modal-title').textContent = 'Editar lançamento';
+  document.getElementById('fin-desc').value = f.descricao || '';
+  document.getElementById('fin-status').value = f.status || 'pendente';
+  document.getElementById('fin-cliente').value = f.cliente_id || '';
+  // Sempre abre no modo simples para edição de um registro
+  document.getElementById('fin-tem-parcelas').value = 'nao';
+  toggleParcelas('nao');
+  // Formatar valor com máscara
+  const valStr = parseFloat(f.valor||0).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  document.getElementById('fin-valor-unico').value = valStr;
+  document.getElementById('fin-venc-unico').value = f.vencimento || '';
+  document.getElementById('fin-preview-parcelas').innerHTML = '';
   openModal('modal-financeiro');
 }
 
 async function salvarFinanceiro() {
+  const editId = document.getElementById('fin-edit-id').value;
   const desc = document.getElementById('fin-desc').value.trim();
   const clienteId = document.getElementById('fin-cliente').value || null;
   const status = document.getElementById('fin-status').value;
   const temParcelas = document.getElementById('fin-tem-parcelas').value === 'sim';
   const temEntrada = document.getElementById('fin-tem-entrada').value === 'sim';
   if (!desc) { toast('Informe a descrição.', true); return; }
+
+  // Modo edição simples (lançamento único)
+  if (editId) {
+    const updates = { descricao: desc, cliente_id: clienteId, status };
+    if (!temParcelas) {
+      updates.valor = parseMoeda(document.getElementById('fin-valor-unico').value);
+      updates.vencimento = document.getElementById('fin-venc-unico').value;
+    }
+    const { error } = await sb.from('financeiro').update(updates).eq('id', editId);
+    if (error) { toast('Erro: ' + error.message, true); return; }
+    toast('Lançamento atualizado!');
+    closeModal('modal-financeiro'); loadFinanceiro(); loadDashboardMetrics(); loadDashAlertas();
+    return;
+  }
+
+  // Novo lançamento
   const registros = [];
   if (!temParcelas) {
-    const valor = parseFloat(document.getElementById('fin-valor-unico').value) || 0;
+    const valor = parseMoeda(document.getElementById('fin-valor-unico').value);
     const venc = document.getElementById('fin-venc-unico').value;
     if (!venc) { toast('Informe a data de vencimento.', true); return; }
     registros.push({ descricao: desc, valor, vencimento: venc, status, cliente_id: clienteId, user_id: currentUser.id, parcela_info: null });
   } else {
-    const valTotal = parseFloat(document.getElementById('fin-valor-total').value) || 0;
+    const valTotal = parseMoeda(document.getElementById('fin-valor-total').value);
     const numParcelas = parseInt(document.getElementById('fin-num-parcelas').value) || 1;
     const dataPrimeira = document.getElementById('fin-data-primeira').value;
     if (!dataPrimeira) { toast('Informe a data da 1ª parcela.', true); return; }
-    const valEntrada = temEntrada ? (parseFloat(document.getElementById('fin-val-entrada').value) || 0) : 0;
-    const dataEntrada = temEntrada ? document.getElementById('fin-data-entrada').value : null;
+    const valEntrada = temEntrada ? parseMoeda(document.getElementById('fin-val-entrada').value) : 0;
+    // Pegar datas editadas do preview
+    const datasEditadas = {};
+    document.querySelectorAll('.parcela-data-edit').forEach(inp => {
+      datasEditadas[inp.dataset.idx] = inp.value;
+    });
     if (temEntrada && valEntrada > 0) {
-      registros.push({ descricao: desc + ' — Entrada', valor: valEntrada, vencimento: dataEntrada || dataPrimeira, status, cliente_id: clienteId, user_id: currentUser.id, parcela_info: 'Entrada' });
+      const dataEnt = datasEditadas['entrada'] || document.getElementById('fin-data-entrada').value || dataPrimeira;
+      registros.push({ descricao: desc + ' — Entrada', valor: valEntrada, vencimento: dataEnt, status, cliente_id: clienteId, user_id: currentUser.id, parcela_info: 'Entrada' });
     }
     const restante = valTotal - valEntrada;
-    const valParcela = restante > 0 ? restante / numParcelas : valTotal / numParcelas;
+    const valParcela = restante > 0 ? Math.round(restante / numParcelas * 100) / 100 : Math.round(valTotal / numParcelas * 100) / 100;
     for (let i = 0; i < numParcelas; i++) {
-      registros.push({ descricao: desc, valor: Math.round(valParcela*100)/100, vencimento: addMonths(dataPrimeira, i), status, cliente_id: clienteId, user_id: currentUser.id, parcela_info: `Parcela ${i+1}/${numParcelas}` });
+      const dtParcela = datasEditadas[String(i)] || addMonths(dataPrimeira, i);
+      registros.push({ descricao: desc, valor: valParcela, vencimento: dtParcela, status, cliente_id: clienteId, user_id: currentUser.id, parcela_info: `Parcela ${i+1}/${numParcelas}` });
     }
   }
   const { error } = await sb.from('financeiro').insert(registros);

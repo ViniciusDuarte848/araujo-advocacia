@@ -1132,7 +1132,7 @@ tbody tr:hover td{background:var(--pink-light);}
           <div class="form-group"><label>Data 1ª parcela</label><input type="date" id="fin-data-primeira" oninput="calcParcelas()"></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label>Tem entrada?</label><select id="fin-tem-entrada" onchange="calcParcelas()"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
+          <div class="form-group"><label>Tem entrada?</label><select id="fin-tem-entrada" onchange="toggleEntrada(this.value)"><option value="nao">Não</option><option value="sim">Sim</option></select></div>
           <div class="form-group" id="fin-box-entrada-val" style="display:none"><label>Valor da entrada (R$)</label><input type="text" id="fin-val-entrada" placeholder="0,00" oninput="mascaraMoeda(this);calcParcelas()"></div>
         </div>
         <div class="form-row" id="fin-box-entrada-data" style="display:none">

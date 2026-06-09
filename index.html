@@ -1784,18 +1784,21 @@ async function deleteAgenda(id) {
 // ---- FINANCEIRO PARCELAS ----
 function toggleParcelas(val) {
   const isParcela = val === 'sim';
-  document.getElementById('fin-box-unico').style.display = isParcela ? 'none' : 'block';
-  document.getElementById('fin-box-parcelas').style.display = isParcela ? 'block' : 'none';
-  document.getElementById('fin-box-num-parcelas').style.display = isParcela ? 'block' : 'none';
+  const boxUnico = document.getElementById('fin-box-unico');
+  const boxParc = document.getElementById('fin-box-parcelas');
+  if (boxUnico) boxUnico.style.display = isParcela ? 'none' : 'block';
+  if (boxParc) boxParc.style.display = isParcela ? 'block' : 'none';
   if (isParcela) calcParcelas();
 }
 function toggleEntrada(val) {
   const show = val === 'sim';
-  document.getElementById('fin-box-entrada-val').style.display = show ? 'block' : 'none';
-  document.getElementById('fin-box-entrada-data').style.display = show ? 'block' : 'none';
+  const boxVal = document.getElementById('fin-box-entrada-val');
+  const boxData = document.getElementById('fin-box-entrada-data');
+  if (boxVal) boxVal.style.display = show ? 'block' : 'none';
+  if (boxData) boxData.style.display = show ? 'block' : 'none';
   calcParcelas();
 }
-document.getElementById('fin-tem-entrada').addEventListener('change', function(){ toggleEntrada(this.value); });
+// Listener adicionado ao abrir o modal (não no load)
 
 // Máscara de moeda brasileira
 function mascaraMoeda(el) {

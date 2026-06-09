@@ -2833,12 +2833,9 @@ async function enviarAvisosVencimento() {
   atualizarBadgeNotif();
 
   // Gerar mailto para o advogado com resumo
-  const linhas = data.map(f =>
-    `• ${f.descricao}${f.clientes?.nome?' — '+f.clientes.nome:''}: ${fmtMoney(f.valor)} (venc. ${fmtDate(f.vencimento)})`
-  ).join('
-');
+  const linhas = data.map(f => '• ' + f.descricao + (f.clientes?.nome ? ' — ' + f.clientes.nome : '') + ': ' + fmtMoney(f.valor) + ' (venc. ' + fmtDate(f.vencimento) + ')').join('\n');
 
-  const assunto = encodeURIComponent(`⚠️ ${data.length} pagamento(s) vencem em 3 dias — Araujo Advocacia`);
+  const assunto = encodeURIComponent('⚠️ ' + data.length + ' pagamento(s) vencem em 3 dias — Araujo Advocacia');
   const corpo = encodeURIComponent(
     'Olá!\n\nOs seguintes lançamentos vencem em 3 dias (' + fmtDate(em3Str) + '):\n\n' + linhas + '\n\nAcesse o sistema para mais detalhes:\nhttps://viniciusduarte848.github.io/araujo-advocacia/\n\nAraujo Advocacia'
   );

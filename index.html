@@ -1077,6 +1077,24 @@ tbody tr:hover td{background:var(--pink-light);}
 </div>
 
 <!-- MODAL FINANCEIRO -->
+<!-- MODAL VENCIDOS FINANCEIRO — aparece ao entrar no app -->
+<div class="modal-backdrop" id="modal-vencidos-fin">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <span class="modal-title">🚨 Pagamentos em atraso</span>
+      <button class="modal-close" onclick="closeModal('modal-vencidos-fin')">✕</button>
+    </div>
+    <div style="padding:0.5rem 0 0;">
+      <p style="font-size:13px;color:var(--gray-600);margin-bottom:14px;">Os lançamentos abaixo estão vencidos e não recebidos:</p>
+      <div id="vencidos-fin-list" style="max-height:55vh;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer" style="margin-top:8px;gap:8px;">
+      <button class="btn btn-ghost" onclick="snoozeVencidosFin()">Lembrar amanhã</button>
+      <button class="btn btn-pink" onclick="closeModal('modal-vencidos-fin');showPage('financeiro',document.querySelector('.nav-item[onclick*=financeiro]'))">Ver financeiro →</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="modal-financeiro">
   <div class="modal">
     <div class="modal-header">
@@ -1092,23 +1110,25 @@ tbody tr:hover td{background:var(--pink-light);}
 
     <div class="form-section">
       <div class="form-section-title">💰 Valores e Parcelas</div>
+
+      <!-- VALOR TOTAL SEMPRE VISÍVEL PRIMEIRO -->
       <div class="form-row">
-        <div class="form-group"><label>Tem parcelas?</label><select id="fin-tem-parcelas" onchange="toggleParcelas(this.value)"><option value="nao">Não — pagamento único</option><option value="sim">Sim — parcelado</option></select></div>
-        <div class="form-group" id="fin-box-num-parcelas" style="display:none"><label>Nº de parcelas</label><input type="number" id="fin-num-parcelas" min="1" max="120" value="1" oninput="calcParcelas()"></div>
+        <div class="form-group"><label>Valor total (R$)</label><input type="text" id="fin-valor-total" placeholder="0,00" oninput="mascaraMoeda(this);sincValorUnico();calcParcelas()"></div>
+        <div class="form-group"><label>Forma de pagamento</label><select id="fin-tem-parcelas" onchange="toggleParcelas(this.value)"><option value="nao">Pagamento único</option><option value="sim">Parcelado</option></select></div>
       </div>
 
       <!-- PAGAMENTO ÚNICO -->
       <div id="fin-box-unico">
         <div class="form-row">
-          <div class="form-group"><label>Valor (R$)</label><input type="text" id="fin-valor-unico" placeholder="0,00" oninput="mascaraMoeda(this)"></div>
+          <div class="form-group" style="display:none"><input type="text" id="fin-valor-unico" placeholder="0,00"></div>
           <div class="form-group"><label>Data de vencimento</label><input type="date" id="fin-venc-unico"></div>
         </div>
       </div>
 
-      <!-- PARCELADO — valor total primeiro -->
+      <!-- PARCELADO -->
       <div id="fin-box-parcelas" style="display:none">
         <div class="form-row">
-          <div class="form-group"><label>Valor total (R$)</label><input type="text" id="fin-valor-total" placeholder="0,00" oninput="mascaraMoeda(this);calcParcelas()"></div>
+          <div class="form-group"><label>Nº de parcelas</label><input type="number" id="fin-num-parcelas" min="1" max="120" value="1" oninput="calcParcelas()"></div>
           <div class="form-group"><label>Data 1ª parcela</label><input type="date" id="fin-data-primeira" oninput="calcParcelas()"></div>
         </div>
         <div class="form-row">
@@ -2372,6 +2392,7 @@ function renderNotif() {
       <div class="notif-body">
         <div class="notif-title">${n.titulo}</div>
         <div class="notif-desc">${n.desc}</div>
+        ${n.link ? `<a href="${n.link}" target="_blank" style="display:inline-block;margin-top:6px;font-size:11px;background:#25D366;color:#fff;padding:3px 10px;border-radius:20px;text-decoration:none;font-weight:600;">💬 Enviar WhatsApp</a>` : ''}
       </div>
     </div>`;
   }).join('');
@@ -2526,6 +2547,10 @@ async function iniciarSistemaPush() {
   }
   // Verificar compromissos vencidos ao abrir
   setTimeout(() => checkVencidos(), 2500);
+  // Verificar lançamentos financeiros vencidos
+  setTimeout(() => checkVencidosFin(), 4000);
+  // Verificar avisos de vencimento para 3 dias (advogado + clientes)
+  setTimeout(() => { enviarAvisosVencimento(); verificarAvisosClientesWhats(); }, 5000);
   // Verificar notificações a cada 1 hora
   setInterval(() => {
     if (currentUser) {
@@ -2701,13 +2726,174 @@ function fecharVencidosPorHoje() {
   closeModal('modal-vencido');
 }
 
+
+// ============================================================
+// FINANCEIRO — sincroniza valor único com valor total
+// ============================================================
+function sincValorUnico() {
+  const v = document.getElementById('fin-valor-total').value;
+  document.getElementById('fin-valor-unico').value = v;
+}
+
+// ============================================================
+// FINANCEIRO — modal de vencidos ao abrir app
+// ============================================================
+const SNOOZE_FIN_KEY = 'vencidos_fin_snooze';
+
+async function checkVencidosFin() {
+  const snooze = localStorage.getItem(SNOOZE_FIN_KEY);
+  const hoje = new Date().toISOString().split('T')[0];
+  if (snooze && snooze >= hoje) return;
+
+  const { data } = await sb.from('financeiro')
+    .select('*, clientes(nome, email, telefone)')
+    .neq('status', 'recebido')
+    .lt('vencimento', hoje)
+    .order('vencimento');
+
+  if (!data?.length) return;
+
+  const list = document.getElementById('vencidos-fin-list');
+  list.innerHTML = data.map(f => {
+    const whatsLink = f.clientes?.telefone
+      ? gerarLinkWhatsApp(f.clientes.telefone, f.clientes.nome, f.descricao, f.valor, f.vencimento)
+      : null;
+    const diasAtras = Math.round((new Date() - new Date(f.vencimento + 'T12:00:00')) / 86400000);
+    return `<div class="vencido-card">
+      <div class="vencido-card-title">${f.descricao}</div>
+      <div class="vencido-card-sub">
+        ${f.clientes?.nome ? f.clientes.nome + ' · ' : ''}
+        ${fmtMoney(f.valor)} · venc. ${fmtDate(f.vencimento)}
+        <span style="color:#991B1B;"> (${diasAtras} dia${diasAtras>1?'s':''} atrás)</span>
+      </div>
+      <div class="vencido-actions" style="margin-top:8px;">
+        <button class="btn btn-sm" style="background:#1D9E75;color:#fff;" onclick="marcarRecebido('${f.id}','${f.status}');this.closest('.vencido-card').remove();toast('✅ Marcado como recebido!');">✅ Recebido</button>
+        ${whatsLink ? `<a href="${whatsLink}" target="_blank" class="btn btn-sm btn-outline" style="color:#25D366;border-color:#25D366;">💬 WhatsApp</a>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  openModal('modal-vencidos-fin');
+}
+
+function snoozeVencidosFin() {
+  const amanha = new Date(); amanha.setDate(amanha.getDate() + 1);
+  localStorage.setItem(SNOOZE_FIN_KEY, amanha.toISOString().split('T')[0]);
+  closeModal('modal-vencidos-fin');
+}
+
+// ============================================================
+// LINK WHATSAPP — cobrança para cliente
+// ============================================================
+function gerarLinkWhatsApp(telefone, nome, descricao, valor, vencimento) {
+  const tel = telefone.replace(/\D/g, '');
+  const fone = tel.startsWith('55') ? tel : '55' + tel;
+  const primeiroNome = nome ? ' ' + nome.split(' ')[0] : '';
+  const msg = encodeURIComponent(
+    'Olá' + primeiroNome + '! 👋\n\n' +
+    'Passando para lembrar sobre o pagamento pendente:\n\n' +
+    '📋 *' + descricao + '*\n' +
+    '💰 Valor: *' + fmtMoney(valor) + '*\n' +
+    '📅 Vencimento: *' + fmtDate(vencimento) + '*\n\n' +
+    'Por favor, entre em contato para regularizar. Obrigado!'
+  );
+  return 'https://wa.me/' + fone + '?text=' + msg;
+}
+
+// ============================================================
+// E-MAIL ADVOGADO — aviso de vencimentos (via Supabase Edge Function ou mailto)
+// ============================================================
+async function enviarAvisosVencimento() {
+  if (!currentUser) return;
+  const hoje = new Date();
+  const em3 = new Date(); em3.setDate(em3.getDate() + 3);
+  const em3Str = em3.toISOString().split('T')[0];
+  const hojeStr = hoje.toISOString().split('T')[0];
+
+  // Buscar lançamentos que vencem em 3 dias (ainda não enviou aviso hoje)
+  const avisoKey = 'aviso_fin_' + hojeStr;
+  if (localStorage.getItem(avisoKey)) return; // já avisou hoje
+
+  const { data } = await sb.from('financeiro')
+    .select('*, clientes(nome, email, telefone)')
+    .neq('status', 'recebido')
+    .eq('vencimento', em3Str);
+
+  if (!data?.length) return;
+
+  // Notificar no sininho
+  data.forEach(f => {
+    notifData.unshift({
+      tipo: 'urgente',
+      titulo: '💰 Vence em 3 dias: ' + f.descricao,
+      desc: fmtMoney(f.valor) + (f.clientes?.nome ? ' · ' + f.clientes.nome : '') + ' · ' + fmtDate(f.vencimento),
+      prioridade: 0
+    });
+  });
+  atualizarBadgeNotif();
+
+  // Gerar mailto para o advogado com resumo
+  const linhas = data.map(f =>
+    `• ${f.descricao}${f.clientes?.nome?' — '+f.clientes.nome:''}: ${fmtMoney(f.valor)} (venc. ${fmtDate(f.vencimento)})`
+  ).join('
+');
+
+  const assunto = encodeURIComponent(`⚠️ ${data.length} pagamento(s) vencem em 3 dias — Araujo Advocacia`);
+  const corpo = encodeURIComponent(
+    'Olá!\n\nOs seguintes lançamentos vencem em 3 dias (' + fmtDate(em3Str) + '):\n\n' + linhas + '\n\nAcesse o sistema para mais detalhes:\nhttps://viniciusduarte848.github.io/araujo-advocacia/\n\nAraujo Advocacia'
+  );
+  const mailtoLink = 'mailto:' + currentUser.email + '?subject=' + assunto + '&body=' + corpo;
+
+  // Mostrar toast com botão de enviar e-mail
+  const toastEl = document.getElementById('toast');
+  if (toastEl) {
+    toastEl.innerHTML = `⚠️ ${data.length} lançamento(s) vencem em 3 dias! <a href="${mailtoLink}" style="color:#fff;font-weight:600;text-decoration:underline;margin-left:8px;">📧 Enviar e-mail</a>`;
+    toastEl.className = 'show';
+    setTimeout(() => { toastEl.className = ''; toastEl.innerHTML = ''; }, 8000);
+  }
+
+  localStorage.setItem(avisoKey, '1');
+}
+
+// ============================================================
+// WHATSAPP — aviso antecipado para cliente (3 dias antes)
+// ============================================================
+async function verificarAvisosClientesWhats() {
+  const hoje = new Date();
+  const em3 = new Date(); em3.setDate(em3.getDate() + 3);
+  const em3Str = em3.toISOString().split('T')[0];
+  const hojeStr = hoje.toISOString().split('T')[0];
+  const chave = 'whats_avisado_' + hojeStr;
+  if (localStorage.getItem(chave)) return;
+
+  const { data } = await sb.from('financeiro')
+    .select('*, clientes(nome, email, telefone)')
+    .neq('status', 'recebido')
+    .eq('vencimento', em3Str)
+    .not('clientes', 'is', null);
+
+  if (!data?.length) return;
+
+  // Mostrar notificação no sininho com link WhatsApp para cada cliente
+  data.forEach(f => {
+    if (!f.clientes?.telefone) return;
+    const link = gerarLinkWhatsApp(f.clientes.telefone, f.clientes.nome, f.descricao, f.valor, f.vencimento);
+    notifData.unshift({
+      tipo: 'aviso',
+      titulo: '💬 Avisar cliente: ' + (f.clientes.nome || ''),
+      desc: f.descricao + ' · ' + fmtMoney(f.valor) + ' · vence em 3 dias',
+      prioridade: 1,
+      link
+    });
+  });
+  atualizarBadgeNotif();
+  localStorage.setItem(chave, '1');
+}
+
 // ---- WHATSAPP ----
 function enviarWhatsApp() {
   const hoje = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'});
-  let msg = `*Araujo Advocacia — Resumo do dia*
-📅 ${hoje}
-
-`;
+  let msg = '*Araujo Advocacia — Resumo do dia*\n📅 ' + hoje + '\n\n';
   const urgentes = notifData.filter(n => n.tipo === 'urgente');
   const hojeVenc = notifData.filter(n => n.tipo === 'hoje');
   const agenda = notifData.filter(n => n.tipo === 'agenda');

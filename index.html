@@ -2096,12 +2096,21 @@ async function loadDashAlertas() {
   if (!data?.length) { el.innerHTML = ''; return; }
   const vencHoje = data.filter(f => f.vencimento === hoje);
   const vencidos = data.filter(f => f.vencimento < hoje);
+  const total = vencHoje.length + vencidos.length;
+  // Mostrar só um badge discreto no dashboard — detalhes ficam no modal
   let html = '';
-  if (vencHoje.length) {
-    html += `<div class="alert-venc"><div class="alert-venc-title">⚠️ Vencendo hoje (${vencHoje.length})</div>${vencHoje.map(f=>`<div class="alert-venc-item"><span>${f.descricao}${f.clientes?.nome?' — '+f.clientes.nome:''}</span><strong>${fmtMoney(f.valor)}</strong></div>`).join('')}</div>`;
-  }
-  if (vencidos.length) {
-    html += `<div class="alert-venc alert-overdue"><div class="alert-venc-title">🚨 Vencidos e não recebidos (${vencidos.length})</div>${vencidos.map(f=>`<div class="alert-venc-item"><span>${f.descricao}${f.clientes?.nome?' — '+f.clientes.nome:''} · ${fmtDate(f.vencimento)}</span><strong>${fmtMoney(f.valor)}</strong></div>`).join('')}</div>`;
+  if (total > 0) {
+    const totalValor = data.reduce((s, f) => s + (parseFloat(f.valor) || 0), 0);
+    html = `<div style="display:flex;align-items:center;justify-content:space-between;background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:10px 16px;margin-bottom:12px;cursor:pointer;" onclick="checkVencidosFin()">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">🚨</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:#991B1B;">${total} pagamento${total>1?'s':''} vencido${total>1?'s':''} em aberto</div>
+          <div style="font-size:12px;color:#B91C1C;">Total: ${fmtMoney(totalValor)} · Clique para ver detalhes</div>
+        </div>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#991B1B" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>`;
   }
   el.innerHTML = html;
 }
@@ -2168,16 +2177,18 @@ async function loadCalendario() {
   const inicio = `${calAno}-${mesStr}-01`;
   const lastDay = new Date(calAno, calMes + 1, 0).getDate();
   const fim = `${calAno}-${mesStr}-${String(lastDay).padStart(2, '0')}`;
-  const { data } = await sb.from('agenda')
-    .select('id, titulo, data, horario, tipo, clientes(nome)')
+  const { data: calRaw } = await sb.from('agenda')
+    .select('id, titulo, data, horario, tipo, status, clientes(nome)')
     .gte('data', inicio)
     .lte('data', fim)
     .order('data');
-  // normalizar datas para garantir formato YYYY-MM-DD
-  calData = (data || []).map(e => ({
-    ...e,
-    data: e.data ? e.data.substring(0, 10) : e.data
-  }));
+  // Filtrar: só pendentes (inclui null para registros antigos)
+  calData = (calRaw || [])
+    .filter(e => !e.status || e.status === 'pendente')
+    .map(e => ({
+      ...e,
+      data: e.data ? e.data.substring(0, 10) : e.data
+    }));
   renderCal();
 }
 

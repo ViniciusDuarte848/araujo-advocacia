@@ -3070,9 +3070,9 @@ function renderAgendaLista(items) {
       '<div class="agenda-info"><div class="agenda-title-text">' + ev.titulo + statusBadge + '</div>' +
       '<div class="agenda-desc">' + (tipoLabels[ev.tipo]||ev.tipo) + (ev.clientes?.nome?' · '+ev.clientes.nome:'') + (ev.descricao?' · '+ev.descricao:'') + '</div></div>' +
       '<div class="agenda-time">' + (ev.horario?ev.horario.substring(0,5):'—') + '</div>' +
-      ((vencido||isHoje) ? '<button class="btn btn-sm btn-icon" onclick="abrirResolucao('' + ev.id + '')" title="Resolver" style="color:#1D9E75;">' + checkSvg + '</button>' : '') +
-      '<button class="btn btn-sm btn-icon" onclick="editAgenda('' + ev.id + '')" title="Editar" style="color:var(--pink-dark);margin-right:2px;">' + editSvg + '</button>' +
-      '<button class="btn btn-sm btn-icon" onclick="deleteAgenda('' + ev.id + '')">' + delSvg + '</button></div>';
+      ((vencido||isHoje) ? '<button class="btn btn-sm btn-icon" onclick="abrirResolucao(\''+ev.id+'\')" title="Resolver" style="color:#1D9E75;">' + checkSvg + '</button>' : '') +
+      '<button class="btn btn-sm btn-icon" onclick="editAgenda(\''+ev.id+'\')" title="Editar" style="color:var(--pink-dark);margin-right:2px;">' + editSvg + '</button>' +
+      '<button class="btn btn-sm btn-icon" onclick="deleteAgenda(\''+ev.id+'\')">' + delSvg + '</button></div>';
   }).join('');
 }
 

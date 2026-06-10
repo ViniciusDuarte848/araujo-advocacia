@@ -684,6 +684,10 @@ tbody tr:hover td{background:var(--pink-light);}
             <div class="card-header"><span class="card-title" style="text-transform:uppercase;width:100%;text-align:center;display:block;">Casos Recentes</span></div>
             <div id="dash-casos"><div class="loading">carregando...</div></div>
           </div>
+          <div class="card" style="margin-top:16px;">
+            <div class="card-header"><span class="card-title" style="text-transform:uppercase;">📊 Receita Mensal</span></div>
+            <canvas id="grafico-receita" style="width:100%;display:block;"></canvas>
+          </div>
         </div>
       </div>
 
@@ -734,7 +738,7 @@ tbody tr:hover td{background:var(--pink-light);}
       <div class="page" id="page-agenda">
         <div class="page-header">
           <div class="page-title">Agenda</div>
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-ghost" onclick="toggleHistorico()" id="btn-historico">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               Histórico
@@ -744,6 +748,19 @@ tbody tr:hover td{background:var(--pink-light);}
               Novo evento
             </button>
           </div>
+        </div>
+        <!-- FILTROS AGENDA -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center;">
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="filtro-btn active" id="filtro-agenda-todos" onclick="filtrarAgenda('todos',this)">Todos</button>
+            <button class="filtro-btn" id="filtro-agenda-audiencia" onclick="filtrarAgenda('audiencia',this)">Audiência</button>
+            <button class="filtro-btn" id="filtro-agenda-prazo" onclick="filtrarAgenda('prazo',this)">Prazo</button>
+            <button class="filtro-btn" id="filtro-agenda-reuniao" onclick="filtrarAgenda('reuniao',this)">Reunião</button>
+            <button class="filtro-btn" id="filtro-agenda-outro" onclick="filtrarAgenda('outro',this)">Outro</button>
+          </div>
+          <select id="filtro-agenda-cliente" onchange="filtrarAgendaCliente(this.value)" style="padding:6px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+            <option value="">Todos os clientes</option>
+          </select>
         </div>
         <div class="card">
           <div id="list-agenda"><div class="loading">carregando...</div></div>
@@ -872,34 +889,68 @@ tbody tr:hover td{background:var(--pink-light);}
 
 <!-- MODAL CLIENTE -->
 <div class="modal-backdrop" id="modal-cliente">
-  <div class="modal">
+  <div class="modal" style="max-width:600px;">
     <div class="modal-header">
       <span class="modal-title" id="modal-cliente-title">Novo cliente</span>
       <button class="modal-close" onclick="closeModal('modal-cliente')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <input type="hidden" id="cliente-id">
-    <div class="form-group"><label>Nome completo / Razão social</label><input type="text" id="cliente-nome" placeholder="Nome do cliente"></div>
-    <div class="form-row">
-      <div class="form-group"><label>CPF / CNPJ</label><input type="text" id="cliente-doc" placeholder="000.000.000-00" oninput="maskDocumento(this)" maxlength="18"></div>
-      <div class="form-group"><label>Telefone</label><input type="text" id="cliente-tel" placeholder="(27) 99999-0000" oninput="maskTelefone(this)" maxlength="15"></div>
+    <!-- Abas -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px;">
+      <button id="tab-cli-dados" onclick="switchTabCliente('dados')" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--pink-dark);border-bottom:2px solid var(--pink-dark);margin-bottom:-2px;">📋 Dados</button>
+      <button id="tab-cli-historico" onclick="switchTabCliente('historico')" style="padding:8px 18px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--gray-400);border-bottom:2px solid transparent;margin-bottom:-2px;" id="tab-cli-hist-btn">📁 Casos e Financeiro</button>
     </div>
-    <div class="form-group"><label>E-mail</label><input type="email" id="cliente-email" placeholder="cliente@email.com"></div>
-    <div class="form-row">
-      <div class="form-group"><label>Status</label><select id="cliente-status"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
-      <div class="form-group"><label>Área de atuação</label>
-        <select id="cliente-area" onchange="toggleOutrosCliente(this.value)">
-          <option>Família</option><option>Civil</option><option>Trabalhista</option>
-          <option>Contratos</option><option>Criminal</option><option>Consumidor</option>
-          <option>Previdenciário</option><option>Outros</option>
-        </select>
+
+    <!-- ABA DADOS -->
+    <div id="tab-cli-dados-content">
+      <div class="form-row">
+        <div class="form-group"><label>Tipo</label><select id="cliente-tipo"><option value="PF">PF — Pessoa Física</option><option value="PJ">PJ — Pessoa Jurídica</option></select></div>
+        <div class="form-group"><label>Status</label><select id="cliente-status"><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
       </div>
+      <div class="form-group"><label>Nome completo / Razão social</label><input type="text" id="cliente-nome" placeholder="Nome do cliente"></div>
+      <div class="form-row">
+        <div class="form-group"><label>CPF / CNPJ</label><input type="text" id="cliente-doc" placeholder="000.000.000-00" oninput="maskDocumento(this)" maxlength="18"></div>
+        <div class="form-group"><label>Data de nascimento</label><input type="date" id="cliente-nascimento"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Telefone</label><input type="text" id="cliente-tel" placeholder="(27) 99999-0000" oninput="maskTelefone(this)" maxlength="15"></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="cliente-email" placeholder="cliente@email.com"></div>
+      </div>
+      <div class="form-group"><label>Profissão / Ramo de atividade</label><input type="text" id="cliente-profissao" placeholder="Ex: Médico, Comércio, Professora..."></div>
+      <div class="form-row">
+        <div class="form-group"><label>Área de atuação</label>
+          <select id="cliente-area" onchange="toggleOutrosCliente(this.value)">
+            <option>Família</option><option>Civil</option><option>Trabalhista</option>
+            <option>Contratos</option><option>Criminal</option><option>Consumidor</option>
+            <option>Previdenciário</option><option>Outros</option>
+          </select>
+        </div>
+        <div class="form-group" id="cliente-outros-box" style="display:none"><label>Qual tipo de ação?</label><input type="text" id="cliente-outros" placeholder="Descreva"></div>
+      </div>
+      <div class="form-section" style="margin-top:8px;">
+        <div class="form-section-title">📍 Endereço</div>
+        <div class="form-row">
+          <div class="form-group" style="flex:2"><label>Rua / Logradouro</label><input type="text" id="cliente-endereco" placeholder="Rua das Flores"></div>
+          <div class="form-group" style="flex:1"><label>Número</label><input type="text" id="cliente-numero" placeholder="123"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Bairro</label><input type="text" id="cliente-bairro" placeholder="Centro"></div>
+          <div class="form-group"><label>Cidade</label><input type="text" id="cliente-cidade" placeholder="Vitória"></div>
+          <div class="form-group"><label>CEP</label><input type="text" id="cliente-cep" placeholder="29000-000" maxlength="9"></div>
+        </div>
+      </div>
+      <div class="form-group"><label>Observações</label><textarea id="cliente-obs" placeholder="Notas sobre o cliente..." rows="2"></textarea></div>
     </div>
-    <div class="form-group" id="cliente-outros-box" style="display:none"><label>Qual tipo de ação?</label><input type="text" id="cliente-outros" placeholder="Descreva o tipo de ação"></div>
-    <div class="form-group"><label>Endereço</label><input type="text" id="cliente-endereco" placeholder="Rua, número, bairro"></div>
-    <div class="form-group"><label>Observações</label><textarea id="cliente-obs" placeholder="Notas sobre o cliente..."></textarea></div>
+
+    <!-- ABA HISTÓRICO -->
+    <div id="tab-cli-historico-content" style="display:none;">
+      <div id="cli-hist-casos" style="margin-bottom:16px;"><div class="loading">carregando...</div></div>
+      <div id="cli-hist-financeiro"></div>
+    </div>
+
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-cliente')">Cancelar</button>
-      <button class="btn btn-pink" onclick="salvarCliente()">Salvar cliente</button>
+      <button class="btn btn-pink" id="btn-salvar-cliente" onclick="salvarCliente()">Salvar cliente</button>
     </div>
   </div>
 </div>
@@ -1104,9 +1155,10 @@ tbody tr:hover td{background:var(--pink-light);}
     <input type="hidden" id="fin-edit-id">
     <div class="form-group"><label>Descrição</label><input type="text" id="fin-desc" placeholder="Ex: Honorários — Ana Clara Silva"></div>
     <div class="form-row">
-      <div class="form-group"><label>Cliente (opcional)</label><select id="fin-cliente"><option value="">— nenhum —</option></select></div>
+      <div class="form-group"><label>Cliente (opcional)</label><select id="fin-cliente" onchange="loadCasosDoCliente(this.value)"><option value="">— nenhum —</option></select></div>
       <div class="form-group"><label>Status do pagamento</label><select id="fin-status"><option value="pendente">Pendente</option><option value="recebido">Recebido</option><option value="vencido">Vencido</option></select></div>
     </div>
+    <div class="form-group" id="fin-caso-box" style="display:none"><label>Vincular a um caso (opcional)</label><select id="fin-caso"><option value="">— nenhum —</option></select></div>
 
     <div class="form-section">
       <div class="form-section-title">💰 Valores e Parcelas</div>
@@ -1424,6 +1476,7 @@ async function initApp() {
   finTodos = false;
   finAtualizarLabel();
   await Promise.all([loadDashboardMetrics(), loadCalendario(), loadDashCasos(), loadDashAlertas()]);
+  renderGraficoReceita();
   iniciarSistemaPush();
 }
 
@@ -1531,13 +1584,63 @@ function populateClienteSelects(list) {
     sel.innerHTML = (hasEmpty ? '<option value="">— nenhum —</option>' : '') + list.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
   });
 }
+function switchTabCliente(tab) {
+  const isDados = tab === 'dados';
+  document.getElementById('tab-cli-dados-content').style.display = isDados ? 'block' : 'none';
+  document.getElementById('tab-cli-historico-content').style.display = isDados ? 'none' : 'block';
+  document.getElementById('tab-cli-dados').style.color = isDados ? 'var(--pink-dark)' : 'var(--gray-400)';
+  document.getElementById('tab-cli-dados').style.borderBottomColor = isDados ? 'var(--pink-dark)' : 'transparent';
+  document.getElementById('tab-cli-historico').style.color = isDados ? 'var(--gray-400)' : 'var(--pink-dark)';
+  document.getElementById('tab-cli-historico').style.borderBottomColor = isDados ? 'transparent' : 'var(--pink-dark)';
+  if (!isDados) loadClienteHistorico();
+}
+
+async function loadClienteHistorico() {
+  const id = document.getElementById('cliente-id').value;
+  if (!id) return;
+  // Casos
+  const { data: casos } = await sb.from('casos').select('*').eq('cliente_id', id).order('created_at', { ascending: false });
+  const casoDiv = document.getElementById('cli-hist-casos');
+  if (!casos?.length) {
+    casoDiv.innerHTML = '<p style="font-size:13px;color:var(--gray-400);">Nenhum caso vinculado.</p>';
+  } else {
+    casoDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:8px;">⚖️ Casos</div>' +
+      casos.map(c => '<div style="padding:8px 12px;background:var(--pink-light);border-radius:8px;margin-bottom:6px;font-size:13px;">' +
+        '<strong>' + (c.numero_processo||'Sem número') + '</strong>' +
+        '<span style="margin-left:8px;color:var(--gray-600);">' + (c.area||'') + '</span>' +
+        '<span style="float:right;">' + badgeHtml(c.status) + '</span></div>'
+      ).join('');
+  }
+  // Financeiro
+  const { data: fins } = await sb.from('financeiro').select('*').eq('cliente_id', id).order('vencimento', { ascending: false });
+  const finDiv = document.getElementById('cli-hist-financeiro');
+  if (!fins?.length) {
+    finDiv.innerHTML = '<p style="font-size:13px;color:var(--gray-400);">Nenhum lançamento financeiro.</p>';
+  } else {
+    const total = fins.reduce((s,f) => s + (parseFloat(f.valor)||0), 0);
+    const recebido = fins.filter(f => f.status==='recebido').reduce((s,f) => s + (parseFloat(f.valor)||0), 0);
+    finDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:8px;">💰 Financeiro — Total: ' + fmtMoney(total) + ' | Recebido: ' + fmtMoney(recebido) + '</div>' +
+      fins.map(f => '<div style="padding:8px 12px;background:var(--pink-light);border-radius:8px;margin-bottom:6px;font-size:13px;display:flex;justify-content:space-between;">' +
+        '<span>' + f.descricao + (f.parcela_info?' <small style='color:var(--gray-400)'>('+f.parcela_info+')</small>':'') + '</span>' +
+        '<span>' + fmtMoney(f.valor) + ' ' + badgeHtml(f.status) + '</span></div>'
+      ).join('');
+  }
+}
+
 function openNovoCliente() {
   document.getElementById('cliente-id').value = '';
   document.getElementById('modal-cliente-title').textContent = 'Novo cliente';
-  ['cliente-nome','cliente-doc','cliente-tel','cliente-email','cliente-endereco','cliente-obs','cliente-outros'].forEach(id => document.getElementById(id).value = '');
+  ['cliente-nome','cliente-doc','cliente-tel','cliente-email','cliente-endereco','cliente-numero',
+   'cliente-bairro','cliente-cidade','cliente-cep','cliente-profissao','cliente-obs','cliente-outros'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
   document.getElementById('cliente-status').value = 'ativo';
+  document.getElementById('cliente-tipo').value = 'PF';
   document.getElementById('cliente-area').value = 'Família';
   document.getElementById('cliente-outros-box').style.display = 'none';
+  document.getElementById('cliente-nascimento').value = '';
+  switchTabCliente('dados');
+  document.getElementById('btn-salvar-cliente').style.display = 'inline-flex';
   openModal('modal-cliente');
 }
 function editCliente(c) {
@@ -1548,7 +1651,14 @@ function editCliente(c) {
   document.getElementById('cliente-tel').value = c.telefone||'';
   document.getElementById('cliente-email').value = c.email||'';
   document.getElementById('cliente-status').value = c.status||'ativo';
+  document.getElementById('cliente-tipo').value = c.tipo||'PF';
   document.getElementById('cliente-endereco').value = c.endereco||'';
+  document.getElementById('cliente-numero').value = c.numero||'';
+  document.getElementById('cliente-bairro').value = c.bairro||'';
+  document.getElementById('cliente-cidade').value = c.cidade||'';
+  document.getElementById('cliente-cep').value = c.cep||'';
+  document.getElementById('cliente-profissao').value = c.profissao||'';
+  document.getElementById('cliente-nascimento').value = c.nascimento||'';
   document.getElementById('cliente-obs').value = c.observacoes||'';
   const areaVal = c.area||'Civil';
   const areaOpts = ['Família','Civil','Trabalhista','Contratos','Criminal','Consumidor','Previdenciário','Outros'];
@@ -1559,6 +1669,8 @@ function editCliente(c) {
   } else {
     document.getElementById('cliente-outros-box').style.display = 'none';
   }
+  switchTabCliente('dados');
+  document.getElementById('btn-salvar-cliente').style.display = 'inline-flex';
   openModal('modal-cliente');
 }
 async function salvarCliente() {
@@ -1571,7 +1683,14 @@ async function salvarCliente() {
     telefone: document.getElementById('cliente-tel').value.trim(),
     email: document.getElementById('cliente-email').value.trim(),
     area, status: document.getElementById('cliente-status').value,
+    tipo: document.getElementById('cliente-tipo').value,
     endereco: document.getElementById('cliente-endereco').value.trim(),
+    numero: document.getElementById('cliente-numero').value.trim(),
+    bairro: document.getElementById('cliente-bairro').value.trim(),
+    cidade: document.getElementById('cliente-cidade').value.trim(),
+    cep: document.getElementById('cliente-cep').value.trim(),
+    profissao: document.getElementById('cliente-profissao').value.trim(),
+    nascimento: document.getElementById('cliente-nascimento').value || null,
     observacoes: document.getElementById('cliente-obs').value.trim(),
     user_id: currentUser.id
   };
@@ -1699,6 +1818,13 @@ async function loadAgenda() {
   const data = (allData || []).filter(ev => !ev.status || ev.status === 'pendente');
   if (error) { list.innerHTML = '<div class="loading">Erro.</div>'; return; }
   const items = data || [];
+  agendaTodosItens = items;
+  // Popular filtro de cliente
+  const filtroCliSel = document.getElementById('filtro-agenda-cliente');
+  if (filtroCliSel) {
+    const clientesUnicos = [...new Map(items.filter(e=>e.clientes?.nome).map(e=>[e.cliente_id,e.clientes.nome])).entries()];
+    filtroCliSel.innerHTML = '<option value="">Todos os clientes</option>' + clientesUnicos.map(([id,nome])=>'<option value="'+id+'">'+nome+'</option>').join('');
+  }
   if (!items.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum evento pendente. 🎉</p></div>'; return; }
   const hojeStr = new Date().toISOString().split('T')[0];
   const editSvg = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
@@ -2056,7 +2182,8 @@ async function salvarFinanceiro() {
     const valParcela = restante > 0 ? Math.round(restante / numParcelas * 100) / 100 : Math.round(valTotal / numParcelas * 100) / 100;
     for (let i = 0; i < numParcelas; i++) {
       const dtParcela = datasEditadas[String(i)] || addMonths(dataPrimeira, i);
-      registros.push({ descricao: desc, valor: valParcela, vencimento: dtParcela, status, cliente_id: clienteId, user_id: currentUser.id, parcela_info: `Parcela ${i+1}/${numParcelas}` });
+      const casoId = document.getElementById('fin-caso')?.value || null;
+      registros.push({ descricao: desc, valor: valParcela, vencimento: dtParcela, status, cliente_id: clienteId, caso_id: casoId, user_id: currentUser.id, parcela_info: 'Parcela '+(i+1)+'/'+numParcelas });
     }
   }
   const { error } = await sb.from('financeiro').insert(registros);
@@ -2899,6 +3026,129 @@ async function verificarAvisosClientesWhats() {
   });
   atualizarBadgeNotif();
   localStorage.setItem(chave, '1');
+}
+
+
+// ============================================================
+// FILTROS DA AGENDA
+// ============================================================
+let agendaTodosItens = [];
+
+function filtrarAgenda(tipo, btn) {
+  document.querySelectorAll('[id^="filtro-agenda-"]').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  const clienteId = document.getElementById('filtro-agenda-cliente').value;
+  let lista = agendaTodosItens;
+  if (tipo !== 'todos') lista = lista.filter(ev => ev.tipo === tipo);
+  if (clienteId) lista = lista.filter(ev => ev.cliente_id === clienteId);
+  renderAgendaLista(lista);
+}
+
+function filtrarAgendaCliente(clienteId) {
+  const tipoBtn = document.querySelector('[id^="filtro-agenda-"].active');
+  const tipo = tipoBtn ? tipoBtn.id.replace('filtro-agenda-','') : 'todos';
+  filtrarAgenda(tipo, tipoBtn);
+}
+
+function renderAgendaLista(items) {
+  const list = document.getElementById('list-agenda');
+  const hojeStr = new Date().toISOString().split('T')[0];
+  if (!items.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum evento encontrado.</p></div>'; return; }
+  const editSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  const delSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>';
+  const checkSvg = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+  list.innerHTML = items.map(ev => {
+    const dt = new Date(ev.data + 'T12:00:00');
+    const vencido = ev.data < hojeStr;
+    const isHoje = ev.data === hojeStr;
+    const statusBadge = vencido
+      ? '<span style="font-size:10px;background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:20px;margin-left:6px;">⚠️ Vencido</span>'
+      : isHoje ? '<span style="font-size:10px;background:#FFF8E1;color:#854F0B;padding:2px 8px;border-radius:20px;margin-left:6px;">📅 Hoje</span>' : '';
+    return '<div class="agenda-item" style="' + (vencido?'border-left:3px solid #EF4444;':'') + (isHoje?'border-left:3px solid #F59E0B;':'') + '">' +
+      '<div class="agenda-date-box"><div class="agenda-day">' + dt.getDate().toString().padStart(2,'0') + '</div><div class="agenda-month">' + dt.toLocaleDateString('pt-BR',{month:'short'}).replace('.','') + '</div></div>' +
+      '<div class="agenda-dot" style="background:' + (tipoColors[ev.tipo]||'#9A8890') + '"></div>' +
+      '<div class="agenda-info"><div class="agenda-title-text">' + ev.titulo + statusBadge + '</div>' +
+      '<div class="agenda-desc">' + (tipoLabels[ev.tipo]||ev.tipo) + (ev.clientes?.nome?' · '+ev.clientes.nome:'') + (ev.descricao?' · '+ev.descricao:'') + '</div></div>' +
+      '<div class="agenda-time">' + (ev.horario?ev.horario.substring(0,5):'—') + '</div>' +
+      ((vencido||isHoje) ? '<button class="btn btn-sm btn-icon" onclick="abrirResolucao('' + ev.id + '')" title="Resolver" style="color:#1D9E75;">' + checkSvg + '</button>' : '') +
+      '<button class="btn btn-sm btn-icon" onclick="editAgenda('' + ev.id + '')" title="Editar" style="color:var(--pink-dark);margin-right:2px;">' + editSvg + '</button>' +
+      '<button class="btn btn-sm btn-icon" onclick="deleteAgenda('' + ev.id + '')">' + delSvg + '</button></div>';
+  }).join('');
+}
+
+// ============================================================
+// CASOS DO CLIENTE — para vincular no financeiro
+// ============================================================
+async function loadCasosDoCliente(clienteId) {
+  const box = document.getElementById('fin-caso-box');
+  const sel = document.getElementById('fin-caso');
+  if (!clienteId) { box.style.display = 'none'; return; }
+  const { data } = await sb.from('casos').select('id, numero_processo, area').eq('cliente_id', clienteId);
+  if (!data?.length) { box.style.display = 'none'; return; }
+  sel.innerHTML = '<option value="">— nenhum —</option>' + data.map(c => '<option value="' + c.id + '">' + (c.numero_processo||'Sem número') + (c.area?' — '+c.area:'') + '</option>').join('');
+  box.style.display = 'block';
+}
+
+// ============================================================
+// GRÁFICO — Receita mensal (barras)
+// ============================================================
+async function renderGraficoReceita() {
+  const canvas = document.getElementById('grafico-receita');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const meses = [];
+  const hoje = new Date();
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+    meses.push({ label: d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}), ano: d.getFullYear(), mes: d.getMonth() + 1 });
+  }
+  const recebidos = [], pendentes = [];
+  for (const m of meses) {
+    const inicio = m.ano + '-' + String(m.mes).padStart(2,'0') + '-01';
+    const fim = m.ano + '-' + String(m.mes).padStart(2,'0') + '-31';
+    const { data } = await sb.from('financeiro').select('valor,status').gte('vencimento', inicio).lte('vencimento', fim);
+    recebidos.push((data||[]).filter(f=>f.status==='recebido').reduce((s,f)=>s+(parseFloat(f.valor)||0),0));
+    pendentes.push((data||[]).filter(f=>f.status!=='recebido').reduce((s,f)=>s+(parseFloat(f.valor)||0),0));
+  }
+  // Desenhar gráfico simples
+  const W = canvas.width = canvas.offsetWidth || 400;
+  const H = canvas.height = 180;
+  const maxVal = Math.max(...recebidos, ...pendentes, 1);
+  const pad = { top: 20, right: 10, bottom: 40, left: 50 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+  const barW = chartW / meses.length / 2.5;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#f8f8f8';
+  ctx.fillRect(0, 0, W, H);
+  // Eixo Y
+  ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + chartH - (chartH * i / 4);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = '#999'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText('R$' + ((maxVal * i / 4 / 1000).toFixed(0)) + 'k', pad.left - 4, y + 4);
+  }
+  meses.forEach((m, i) => {
+    const xCenter = pad.left + (i / meses.length) * chartW + chartW / meses.length / 2;
+    const hRec = (recebidos[i] / maxVal) * chartH;
+    const hPend = (pendentes[i] / maxVal) * chartH;
+    // Barra recebido (verde)
+    ctx.fillStyle = '#1D9E75';
+    ctx.fillRect(xCenter - barW - 2, pad.top + chartH - hRec, barW, hRec);
+    // Barra pendente (rosa)
+    ctx.fillStyle = '#C4728A';
+    ctx.fillRect(xCenter + 2, pad.top + chartH - hPend, barW, hPend);
+    // Label mês
+    ctx.fillStyle = '#666'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(m.label, xCenter, H - 8);
+  });
+  // Legenda
+  ctx.fillStyle = '#1D9E75'; ctx.fillRect(pad.left, H - 28, 10, 10);
+  ctx.fillStyle = '#555'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+  ctx.fillText('Recebido', pad.left + 14, H - 19);
+  ctx.fillStyle = '#C4728A'; ctx.fillRect(pad.left + 80, H - 28, 10, 10);
+  ctx.fillText('Pendente', pad.left + 94, H - 19);
 }
 
 // ---- WHATSAPP ----

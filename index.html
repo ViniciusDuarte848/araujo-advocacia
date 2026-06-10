@@ -1621,7 +1621,7 @@ async function loadClienteHistorico() {
     const recebido = fins.filter(f => f.status==='recebido').reduce((s,f) => s + (parseFloat(f.valor)||0), 0);
     finDiv.innerHTML = '<div style="font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:8px;">💰 Financeiro — Total: ' + fmtMoney(total) + ' | Recebido: ' + fmtMoney(recebido) + '</div>' +
       fins.map(f => '<div style="padding:8px 12px;background:var(--pink-light);border-radius:8px;margin-bottom:6px;font-size:13px;display:flex;justify-content:space-between;">' +
-        '<span>' + f.descricao + (f.parcela_info?' <small style='color:var(--gray-400)'>('+f.parcela_info+')</small>':'') + '</span>' +
+        '<span>' + f.descricao + (f.parcela_info?' <small style="color:var(--gray-400)">('+f.parcela_info+')</small>':'') + '</span>' +
         '<span>' + fmtMoney(f.valor) + ' ' + badgeHtml(f.status) + '</span></div>'
       ).join('');
   }

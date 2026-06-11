@@ -625,6 +625,10 @@ tbody tr:hover td{background:var(--pink-light);}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
           <span>Financeiro</span>
         </div>
+        <div class="nav-item" onclick="showPage('documentos',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          <span>Documentos</span>
+        </div>
         <div class="nav-item" onclick="showPage('links',this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           <span>Links Úteis</span>
@@ -857,6 +861,31 @@ tbody tr:hover td{background:var(--pink-light);}
       </div>
 
       <!-- LINKS ÚTEIS -->
+      <!-- DOCUMENTOS -->
+      <div class="page" id="page-documentos">
+        <div class="page-header">
+          <div class="page-title">Documentos</div>
+          <button class="btn btn-pink" onclick="abrirNovoDocumento()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Novo documento
+          </button>
+        </div>
+        <!-- Filtros -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center;">
+          <select id="filtro-doc-tipo" onchange="loadDocumentos()" style="padding:6px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+            <option value="">Todos os tipos</option>
+            <option value="honorarios">Contrato de Honorários</option>
+            <option value="procuracao">Procuração</option>
+            <option value="hipossuficiencia">Declaração de Hipossuficiência</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+          <select id="filtro-doc-caso" onchange="loadDocumentos()" style="padding:6px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+            <option value="">Todos os casos</option>
+          </select>
+        </div>
+        <div id="list-documentos"><div class="loading">carregando...</div></div>
+      </div>
+
       <div class="page" id="page-links">
         <div class="page-header">
           <div><div class="page-title">Links Úteis</div><div class="page-subtitle">Acesso rápido às plataformas do escritório</div></div>
@@ -985,33 +1014,59 @@ tbody tr:hover td{background:var(--pink-light);}
 
 <!-- MODAL CASO -->
 <div class="modal-backdrop" id="modal-caso">
-  <div class="modal">
+  <div class="modal" style="max-width:620px;">
     <div class="modal-header">
       <span class="modal-title" id="modal-caso-title">Novo caso</span>
       <button class="modal-close" onclick="closeModal('modal-caso')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
     </div>
     <input type="hidden" id="caso-id">
-    <div class="form-group"><label>Nº do processo</label><input type="text" id="caso-num" placeholder="0000000-00.0000.0.00.0000"></div>
-    <div class="form-row">
-      <div class="form-group"><label>Cliente</label><select id="caso-cliente"></select></div>
-      <div class="form-group"><label>Área</label>
-        <select id="caso-area" onchange="toggleOutrosCaso(this.value)">
-          <option>Família</option><option>Civil</option><option>Trabalhista</option>
-          <option>Contratos</option><option>Criminal</option><option>Consumidor</option>
-          <option>Previdenciário</option><option>Outros</option>
-        </select>
+    <!-- Abas do caso -->
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:16px;">
+      <button id="tab-caso-dados" onclick="switchTabCaso('dados')" style="padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--pink-dark);border-bottom:2px solid var(--pink-dark);margin-bottom:-2px;">📋 Dados</button>
+      <button id="tab-caso-docs" onclick="switchTabCaso('docs')" style="padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--gray-400);border-bottom:2px solid transparent;margin-bottom:-2px;">📄 Documentos</button>
+      <button id="tab-caso-fin" onclick="switchTabCaso('fin')" style="padding:8px 16px;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:var(--gray-400);border-bottom:2px solid transparent;margin-bottom:-2px;">💰 Financeiro</button>
+    </div>
+    <!-- ABA DADOS -->
+    <div id="tab-caso-dados-content">
+      <div class="form-group"><label>Nº do processo</label><input type="text" id="caso-num" placeholder="0000000-00.0000.0.00.0000"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Cliente</label><select id="caso-cliente"></select></div>
+        <div class="form-group"><label>Área</label>
+          <select id="caso-area" onchange="toggleOutrosCaso(this.value)">
+            <option>Família</option><option>Civil</option><option>Trabalhista</option>
+            <option>Contratos</option><option>Criminal</option><option>Consumidor</option>
+            <option>Previdenciário</option><option>Outros</option>
+          </select>
+        </div>
       </div>
+      <div class="form-group" id="caso-outros-box" style="display:none"><label>Qual tipo de ação?</label><input type="text" id="caso-outros" placeholder="Descreva o tipo de ação"></div>
+      <div class="form-group"><label>Vara / Tribunal</label><input type="text" id="caso-vara" placeholder="Ex: 1ª Vara de Família"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Próximo prazo</label><input type="date" id="caso-prazo"></div>
+        <div class="form-group"><label>Status</label><select id="caso-status"><option value="ativo">Ativo</option><option value="urgente">Urgente</option><option value="pendente">Pendente</option><option value="encerrado">Encerrado</option></select></div>
+      </div>
+      <div class="form-group"><label>Descrição / Observações</label><textarea id="caso-obs" placeholder="Detalhes do caso..."></textarea></div>
     </div>
-    <div class="form-group" id="caso-outros-box" style="display:none"><label>Qual tipo de ação?</label><input type="text" id="caso-outros" placeholder="Descreva o tipo de ação"></div>
-    <div class="form-group"><label>Vara / Tribunal</label><input type="text" id="caso-vara" placeholder="Ex: 1ª Vara de Família"></div>
-    <div class="form-row">
-      <div class="form-group"><label>Próximo prazo</label><input type="date" id="caso-prazo"></div>
-      <div class="form-group"><label>Status</label><select id="caso-status"><option value="ativo">Ativo</option><option value="urgente">Urgente</option><option value="pendente">Pendente</option><option value="encerrado">Encerrado</option></select></div>
+    <!-- ABA DOCUMENTOS -->
+    <div id="tab-caso-docs-content" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:13px;color:var(--gray-600);">Documentos vinculados a este caso</span>
+        <button class="btn btn-sm btn-pink" onclick="abrirNovoDocDoCaso()">+ Novo documento</button>
+      </div>
+      <div id="caso-docs-list"><div class="loading">carregando...</div></div>
     </div>
-    <div class="form-group"><label>Descrição / Observações</label><textarea id="caso-obs" placeholder="Detalhes do caso..."></textarea></div>
+    <!-- ABA FINANCEIRO -->
+    <div id="tab-caso-fin-content" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span style="font-size:13px;color:var(--gray-600);">Lançamentos vinculados a este caso</span>
+        <button class="btn btn-sm btn-pink" onclick="novoLancamentoDoCaso()">+ Lançamento</button>
+      </div>
+      <div id="caso-fin-resumo" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;"></div>
+      <div id="caso-fin-list"><div class="loading">carregando...</div></div>
+    </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('modal-caso')">Cancelar</button>
-      <button class="btn btn-pink" onclick="salvarCaso()">Salvar caso</button>
+      <button class="btn btn-pink" id="btn-salvar-caso" onclick="salvarCaso()">Salvar caso</button>
     </div>
   </div>
 </div>
@@ -1156,6 +1211,82 @@ tbody tr:hover td{background:var(--pink-light);}
 </div>
 
 <!-- MODAL FINANCEIRO -->
+
+<!-- MODAL EDITOR DE DOCUMENTO -->
+<div class="modal-backdrop" id="modal-editor-doc">
+  <div class="modal" style="max-width:700px;max-height:92vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title" id="editor-doc-title">Novo documento</span>
+      <button class="modal-close" onclick="closeModal('modal-editor-doc')">✕</button>
+    </div>
+    <input type="hidden" id="editor-doc-id">
+
+    <!-- Seletor de tipo -->
+    <div id="editor-tipo-box">
+      <div class="form-row" style="margin-bottom:12px;">
+        <div class="form-group">
+          <label>Tipo de documento</label>
+          <select id="editor-doc-tipo" onchange="carregarModeloDoc(this.value)">
+            <option value="">— escolha um modelo —</option>
+            <option value="honorarios">📋 Contrato de Honorários</option>
+            <option value="procuracao">⚖️ Procuração Ad Judicia</option>
+            <option value="hipossuficiencia">📄 Declaração de Hipossuficiência</option>
+            <option value="personalizado">✏️ Modelo em branco</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Caso vinculado (opcional)</label>
+          <select id="editor-doc-caso" onchange="preencherDadosDoc()">
+            <option value="">— nenhum —</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Título do documento</label>
+        <input type="text" id="editor-doc-titulo" placeholder="Ex: Contrato de Honorários — João Silva">
+      </div>
+    </div>
+
+    <!-- Editor -->
+    <div id="editor-doc-area" style="display:none;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding:8px;background:var(--pink-light);border-radius:8px;">
+        <button onclick="formatDoc('bold')" class="btn btn-sm btn-ghost" title="Negrito"><b>N</b></button>
+        <button onclick="formatDoc('italic')" class="btn btn-sm btn-ghost" title="Itálico"><i>I</i></button>
+        <button onclick="formatDoc('underline')" class="btn btn-sm btn-ghost" title="Sublinhado"><u>S</u></button>
+        <button onclick="formatDoc('justifyCenter')" class="btn btn-sm btn-ghost" title="Centralizar">≡</button>
+        <button onclick="formatDoc('justifyFull')" class="btn btn-sm btn-ghost" title="Justificar">▤</button>
+        <span style="border-left:1px solid var(--border);margin:0 4px;"></span>
+        <button onclick="preencherDadosDoc()" class="btn btn-sm btn-outline" style="font-size:11px;">🔄 Preencher dados</button>
+      </div>
+      <div id="editor-doc-content" contenteditable="true"
+        style="min-height:400px;padding:24px 32px;border:1px solid var(--border-md);border-radius:8px;font-family:Georgia,serif;font-size:13px;line-height:1.8;background:#fff;outline:none;">
+      </div>
+    </div>
+
+    <div class="modal-footer" style="margin-top:12px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-editor-doc')">Cancelar</button>
+      <button class="btn btn-outline" onclick="imprimirDocumento()" id="btn-imprimir-doc" style="display:none;">🖨️ Imprimir / PDF</button>
+      <button class="btn btn-pink" onclick="salvarDocumento()" id="btn-salvar-doc" style="display:none;">Salvar documento</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZAR DOCUMENTO -->
+<div class="modal-backdrop" id="modal-view-doc">
+  <div class="modal" style="max-width:700px;max-height:92vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title" id="view-doc-title">Documento</span>
+      <button class="modal-close" onclick="closeModal('modal-view-doc')">✕</button>
+    </div>
+    <div id="view-doc-content" style="padding:24px 32px;font-family:Georgia,serif;font-size:13px;line-height:1.8;background:#fff;border-radius:8px;border:1px solid var(--border);"></div>
+    <div class="modal-footer" style="margin-top:12px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-view-doc')">Fechar</button>
+      <button class="btn btn-outline" onclick="imprimirDocumentoView()">🖨️ Imprimir / PDF</button>
+      <button class="btn btn-pink" onclick="editarDocumentoView()">✏️ Editar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL VENCIDOS FINANCEIRO — aparece ao entrar no app -->
 <div class="modal-backdrop" id="modal-vencidos-fin">
   <div class="modal" style="max-width:460px;">
@@ -1470,6 +1601,7 @@ function showPage(id, el) {
   if (id === 'agenda') loadAgenda();
   if (id === 'financeiro') loadFinanceiro();
   if (id === 'links') loadLinks();
+  if (id === 'documentos') loadDocumentos();
   if (id === 'master') {
     if (!isMaster) { showPage('dashboard', document.querySelector('.nav-item')); return; }
     loadMaster();
@@ -1787,6 +1919,7 @@ function openNovoCaso() {
   document.getElementById('caso-area').value = 'Família';
   document.getElementById('caso-outros-box').style.display = 'none';
   if (!allClientes.length) loadClientes();
+  switchTabCaso('dados');
   openModal('modal-caso');
 }
 function editCaso(c) {
@@ -1803,6 +1936,7 @@ function editCaso(c) {
   document.getElementById('caso-outros-box').style.display = (!areaOpts.includes(areaVal) || areaVal === 'Outros') ? 'block' : 'none';
   if (!allClientes.length) loadClientes().then(() => { document.getElementById('caso-cliente').value = c.cliente_id||''; });
   else document.getElementById('caso-cliente').value = c.cliente_id||'';
+  switchTabCaso('dados');
   openModal('modal-caso');
 }
 async function salvarCaso() {
@@ -3282,6 +3416,326 @@ async function renderGraficoReceita() {
       '<div style="font-size:15px;font-weight:700;color:#374151;">' + pct + '%</div></div>';
 }
 
+
+// ============================================================
+// DOCUMENTOS — funções principais
+// ============================================================
+let _docCasoAtual = null; // caso sendo visualizado nas abas
+
+// Trocar aba do caso
+function switchTabCaso(tab) {
+  ['dados','docs','fin'].forEach(t => {
+    document.getElementById('tab-caso-' + t + '-content').style.display = t === tab ? 'block' : 'none';
+    const btn = document.getElementById('tab-caso-' + t);
+    btn.style.color = t === tab ? 'var(--pink-dark)' : 'var(--gray-400)';
+    btn.style.borderBottomColor = t === tab ? 'var(--pink-dark)' : 'transparent';
+  });
+  const casoId = document.getElementById('caso-id').value;
+  if (tab === 'docs' && casoId) loadCasoDocs(casoId);
+  if (tab === 'fin' && casoId) loadCasoFinanceiro(casoId);
+  // Mostrar/ocultar botão salvar (só na aba dados)
+  document.getElementById('btn-salvar-caso').style.display = tab === 'dados' ? 'inline-flex' : 'none';
+}
+
+// Carregar documentos do caso
+async function loadCasoDocs(casoId) {
+  const list = document.getElementById('caso-docs-list');
+  list.innerHTML = '<div class="loading">carregando...</div>';
+  const { data } = await sb.from('documentos').select('*').eq('caso_id', casoId).order('created_at', { ascending: false });
+  if (!data?.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum documento ainda. Crie o primeiro!</p></div>'; return; }
+  const icons = { honorarios:'📋', procuracao:'⚖️', hipossuficiencia:'📄', personalizado:'✏️' };
+  list.innerHTML = '<div class="card" style="margin:0;">' + data.map(d => 
+    '<div class="doc-card">' +
+    '<span class="doc-card-icon">' + (icons[d.tipo]||'📄') + '</span>' +
+    '<div class="doc-card-info"><div class="doc-card-title">' + d.titulo + '</div>' +
+    '<div class="doc-card-sub">' + (d.tipo||'') + ' · ' + new Date(d.created_at).toLocaleDateString('pt-BR') + '</div></div>' +
+    '<div class="doc-card-actions">' +
+    '<button class="btn btn-sm btn-icon" onclick="visualizarDocumento('' + d.id + '')" title="Ver" style="color:var(--pink-dark);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' +
+    '<button class="btn btn-sm btn-icon" onclick="editarDocumento('' + d.id + '')" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+    '<button class="btn btn-sm btn-icon" onclick="deletarDocumento('' + d.id + '',true)" title="Excluir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>' +
+    '</div></div>'
+  ).join('') + '</div>';
+}
+
+// Carregar financeiro do caso
+async function loadCasoFinanceiro(casoId) {
+  const list = document.getElementById('caso-fin-list');
+  const resumo = document.getElementById('caso-fin-resumo');
+  list.innerHTML = '<div class="loading">carregando...</div>';
+  const { data } = await sb.from('financeiro').select('*, clientes(nome)').eq('caso_id', casoId).order('vencimento');
+  if (!data?.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum lançamento vinculado.</p></div>'; resumo.innerHTML = ''; return; }
+  const totalGeral = data.reduce((s,f) => s+(parseFloat(f.valor)||0), 0);
+  const totalRec = data.filter(f=>f.status==='recebido').reduce((s,f) => s+(parseFloat(f.valor)||0), 0);
+  const totalPend = data.filter(f=>f.status!=='recebido').reduce((s,f) => s+(parseFloat(f.valor)||0), 0);
+  resumo.innerHTML =
+    '<div style="flex:1;background:#D1FAE5;border-radius:8px;padding:8px 12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:#065F46;">RECEBIDO</div><div style="font-size:13px;font-weight:700;color:#1D9E75;">' + fmtMoney(totalRec) + '</div></div>' +
+    '<div style="flex:1;background:var(--pink-light);border-radius:8px;padding:8px 12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:var(--pink-dark);">PENDENTE</div><div style="font-size:13px;font-weight:700;color:var(--pink-dark);">' + fmtMoney(totalPend) + '</div></div>' +
+    '<div style="flex:1;background:#F3F4F6;border-radius:8px;padding:8px 12px;text-align:center;"><div style="font-size:10px;font-weight:700;color:#374151;">TOTAL</div><div style="font-size:13px;font-weight:700;color:#374151;">' + fmtMoney(totalGeral) + '</div></div>';
+  list.innerHTML = '<div class="card" style="margin:0;">' + data.map(f =>
+    '<div class="fin-row"><div><div class="fin-name">' + f.descricao + '</div>' +
+    '<div class="fin-detail">venc. ' + fmtDate(f.vencimento) + (f.parcela_info?' · '+f.parcela_info:'') + '</div></div>' +
+    '<div class="fin-right"><div class="fin-value ' + (f.status==='recebido'?'received':f.vencimento<new Date().toISOString().split('T')[0]?'overdue':'') + '">' + fmtMoney(f.valor) + '</div>' +
+    badgeHtml(f.status) + '</div></div>'
+  ).join('') + '</div>';
+}
+
+// Abrir novo doc a partir do caso
+function abrirNovoDocDoCaso() {
+  const casoId = document.getElementById('caso-id').value;
+  _docCasoAtual = casoId;
+  closeModal('modal-caso');
+  abrirNovoDocumento(casoId);
+}
+
+// Novo lançamento a partir do caso
+function novoLancamentoDoCaso() {
+  const casoId = document.getElementById('caso-id').value;
+  closeModal('modal-caso');
+  openNovoLancamento();
+  setTimeout(() => {
+    document.getElementById('fin-caso').value = casoId;
+    document.getElementById('fin-caso-box').style.display = 'block';
+  }, 200);
+}
+
+// ============================================================
+// DOCUMENTOS — CRUD
+// ============================================================
+async function abrirNovoDocumento(casoIdPresel) {
+  // Preencher select de casos
+  if (!allCasos || !allCasos.length) {
+    const { data } = await sb.from('casos').select('id, numero_processo, clientes(nome)').order('created_at', { ascending: false });
+    allCasos = data || [];
+  }
+  const sel = document.getElementById('editor-doc-caso');
+  sel.innerHTML = '<option value="">— nenhum —</option>' + allCasos.map(c =>
+    '<option value="' + c.id + '">' + (c.numero_processo||'Sem nº') + (c.clientes?.nome?' — '+c.clientes.nome:'') + '</option>'
+  ).join('');
+  if (casoIdPresel) sel.value = casoIdPresel;
+
+  document.getElementById('editor-doc-id').value = '';
+  document.getElementById('editor-doc-titulo').value = '';
+  document.getElementById('editor-doc-tipo').value = '';
+  document.getElementById('editor-doc-content').innerHTML = '';
+  document.getElementById('editor-doc-area').style.display = 'none';
+  document.getElementById('btn-imprimir-doc').style.display = 'none';
+  document.getElementById('btn-salvar-doc').style.display = 'none';
+  document.getElementById('editor-doc-title').textContent = 'Novo documento';
+  openModal('modal-editor-doc');
+}
+
+function formatDoc(cmd) {
+  document.execCommand(cmd, false, null);
+  document.getElementById('editor-doc-content').focus();
+}
+
+function carregarModeloDoc(tipo) {
+  if (!tipo) return;
+  document.getElementById('editor-doc-area').style.display = 'block';
+  document.getElementById('btn-imprimir-doc').style.display = 'inline-flex';
+  document.getElementById('btn-salvar-doc').style.display = 'inline-flex';
+  preencherDadosDoc();
+}
+
+async function preencherDadosDoc() {
+  const tipo = document.getElementById('editor-doc-tipo').value;
+  if (!tipo) return;
+  const casoId = document.getElementById('editor-doc-caso').value;
+  let caso = null, cliente = null;
+  if (casoId) {
+    const { data: c } = await sb.from('casos').select('*, clientes(*)').eq('id', casoId).single();
+    caso = c; cliente = c?.clientes;
+  }
+  const hoje = new Date().toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+  const nomeCliente = cliente?.nome || '[NOME DO CLIENTE]';
+  const cpfCliente = cliente?.documento || '[CPF/CNPJ]';
+  const endCliente = [cliente?.endereco, cliente?.numero, cliente?.bairro, cliente?.cidade].filter(Boolean).join(', ') || '[ENDEREÇO]';
+  const numProcesso = caso?.numero_processo || '[Nº DO PROCESSO]';
+  const vara = caso?.vara || '[VARA/TRIBUNAL]';
+  const area = caso?.area || '[ÁREA]';
+  const advogadoNome = currentUser?.user_metadata?.nome || 'Paula Araujo';
+  const oab = currentUser?.user_metadata?.oab || '[OAB]';
+
+  let titulo = '', html = '';
+
+  if (tipo === 'honorarios') {
+    titulo = 'Contrato de Honorários — ' + nomeCliente;
+    html = '<h1 style="text-align:center;font-size:16px;font-weight:700;margin-bottom:4px;">CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS</h1>' +
+      '<p style="text-align:center;font-size:11px;color:#888;margin-bottom:24px;">Contrato de Honorários Advocatícios</p>' +
+      '<p>Pelo presente instrumento particular, de um lado, <strong>' + nomeCliente + '</strong>, portador(a) do CPF/CNPJ nº <strong>' + cpfCliente + '</strong>, residente e domiciliado(a) em <strong>' + endCliente + '</strong>, doravante denominado(a) <strong>CLIENTE</strong>;</p>' +
+      '<p>E de outro lado, <strong>' + advogadoNome + '</strong>, advogado(a), inscrito(a) na OAB sob o nº <strong>' + oab + '</strong>, com escritório na Araujo Advocacia, doravante denominado(a) <strong>ADVOGADO(A)</strong>;</p>' +
+      '<p>As partes acima identificadas têm entre si justo e acordado o presente Contrato de Prestação de Serviços Advocatícios, que se regerá pelas seguintes cláusulas e condições:</p>' +
+      '<p><strong>CLÁUSULA 1ª — DO OBJETO</strong><br>O(A) ADVOGADO(A) obriga-se a prestar serviços profissionais ao CLIENTE, consistentes em representação judicial e/ou extrajudicial na área de <strong>' + area + '</strong>, referente ao processo nº <strong>' + numProcesso + '</strong>, perante <strong>' + vara + '</strong>.</p>' +
+      '<p><strong>CLÁUSULA 2ª — DOS HONORÁRIOS</strong><br>Pelos serviços prestados, o CLIENTE pagará ao(à) ADVOGADO(A) honorários no valor de R$ ____________ (_________________), a serem pagos na forma: ________________________________.</p>' +
+      '<p><strong>CLÁUSULA 3ª — DA VIGÊNCIA</strong><br>O presente contrato vigorará enquanto durar o patrocínio da causa, podendo ser rescindido a qualquer tempo, mediante comunicação prévia de 30 (trinta) dias.</p>' +
+      '<p><strong>CLÁUSULA 4ª — DO FORO</strong><br>As partes elegem o foro da Comarca de Vitória/ES para dirimir quaisquer dúvidas oriundas do presente instrumento.</p>' +
+      '<p>E por estarem assim justos e contratados, assinam o presente em 2 (duas) vias de igual teor.</p>' +
+      '<p style="text-align:right;">Vitória/ES, ' + hoje + '</p>' +
+      '<br><br>' +
+      '<div style="display:flex;justify-content:space-between;margin-top:40px;">' +
+      '<div style="text-align:center;width:45%;border-top:1px solid #333;padding-top:8px;">CLIENTE<br>' + nomeCliente + '</div>' +
+      '<div style="text-align:center;width:45%;border-top:1px solid #333;padding-top:8px;">ADVOGADO(A)<br>' + advogadoNome + ' — OAB ' + oab + '</div></div>';
+  } else if (tipo === 'procuracao') {
+    titulo = 'Procuração — ' + nomeCliente;
+    html = '<h1 style="text-align:center;font-size:16px;font-weight:700;margin-bottom:24px;">PROCURAÇÃO AD JUDICIA ET EXTRA</h1>' +
+      '<p><strong>' + nomeCliente + '</strong>, portador(a) do CPF/CNPJ nº <strong>' + cpfCliente + '</strong>, residente e domiciliado(a) em <strong>' + endCliente + '</strong>, pelo presente instrumento e na melhor forma de direito, nomeia e constitui seu(sua) bastante procurador(a):</p>' +
+      '<p><strong>' + advogadoNome + '</strong>, advogado(a) inscrito(a) na OAB sob o nº <strong>' + oab + '</strong>;</p>' +
+      '<p>A quem confere <strong>amplos poderes</strong> para o foro em geral, com a cláusula <em>ad judicia et extra</em>, em qualquer Juízo, Instância ou Tribunal, podendo propor contra quem de direito as ações competentes e defender-se das que forem propostas, podendo ainda substabelecer esta, com ou sem reserva de iguais poderes, dar quitações e praticar todos os demais atos necessários ao fiel desempenho deste mandato, especialmente para representar o(a) outorgante em ação de <strong>' + area + '</strong>.</p>' +
+      '<p style="text-align:right;">Vitória/ES, ' + hoje + '</p>' +
+      '<br><br>' +
+      '<div style="text-align:center;margin-top:40px;border-top:1px solid #333;padding-top:8px;width:60%;margin-left:auto;margin-right:auto;">OUTORGANTE<br>' + nomeCliente + '<br>CPF/CNPJ: ' + cpfCliente + '</div>';
+  } else if (tipo === 'hipossuficiencia') {
+    titulo = 'Declaração de Hipossuficiência — ' + nomeCliente;
+    html = '<h1 style="text-align:center;font-size:16px;font-weight:700;margin-bottom:8px;">DECLARAÇÃO DE HIPOSSUFICIÊNCIA</h1>' +
+      '<h2 style="text-align:center;font-size:13px;font-weight:400;margin-bottom:24px;">(Art. 99, §3º do CPC — Lei 13.105/2015)</h2>' +
+      '<p>Eu, <strong>' + nomeCliente + '</strong>, portador(a) do CPF/CNPJ nº <strong>' + cpfCliente + '</strong>, residente e domiciliado(a) em <strong>' + endCliente + '</strong>, na qualidade de parte no processo de <strong>' + area + '</strong>, que tramita perante <strong>' + vara + '</strong>, vem, respeitosamente, perante Vossa Excelência, DECLARAR para os devidos fins legais:</p>' +
+      '<p>Que <strong>não possui condições financeiras de arcar com as custas do processo e os honorários advocatícios</strong>, sem prejuízo do sustento próprio e de sua família, razão pela qual requer a concessão dos benefícios da <strong>JUSTIÇA GRATUITA</strong>, nos termos do artigo 98 e seguintes do Código de Processo Civil.</p>' +
+      '<p>O(A) declarante está ciente de que a falsidade desta declaração configura crime de litigância de má-fé e acarreta as penalidades previstas em lei.</p>' +
+      '<p style="text-align:right;">Vitória/ES, ' + hoje + '</p>' +
+      '<br><br>' +
+      '<div style="text-align:center;margin-top:40px;border-top:1px solid #333;padding-top:8px;width:60%;margin-left:auto;margin-right:auto;">' + nomeCliente + '<br>CPF/CNPJ: ' + cpfCliente + '</div>';
+  } else {
+    titulo = 'Documento — ' + hoje;
+    html = '<h1 style="text-align:center;font-size:16px;font-weight:700;margin-bottom:24px;">TÍTULO DO DOCUMENTO</h1>' +
+      '<p>Digite o conteúdo do documento aqui...</p>';
+  }
+
+  if (!document.getElementById('editor-doc-titulo').value) {
+    document.getElementById('editor-doc-titulo').value = titulo;
+  }
+  document.getElementById('editor-doc-content').innerHTML = html;
+  document.getElementById('editor-doc-area').style.display = 'block';
+  document.getElementById('btn-imprimir-doc').style.display = 'inline-flex';
+  document.getElementById('btn-salvar-doc').style.display = 'inline-flex';
+}
+
+async function salvarDocumento() {
+  const id = document.getElementById('editor-doc-id').value;
+  const titulo = document.getElementById('editor-doc-titulo').value.trim();
+  const tipo = document.getElementById('editor-doc-tipo').value;
+  const casoId = document.getElementById('editor-doc-caso').value || null;
+  const conteudo = document.getElementById('editor-doc-content').innerHTML;
+  if (!titulo) { toast('Informe o título do documento.', true); return; }
+  if (!conteudo || conteudo.trim() === '') { toast('O documento está vazio.', true); return; }
+
+  // Buscar cliente_id via caso
+  let clienteId = null;
+  if (casoId) {
+    const { data: c } = await sb.from('casos').select('cliente_id').eq('id', casoId).single();
+    clienteId = c?.cliente_id || null;
+  }
+
+  const payload = { titulo, tipo, caso_id: casoId, cliente_id: clienteId, conteudo, user_id: currentUser.id };
+  let error;
+  if (id) {
+    ({ error } = await sb.from('documentos').update(payload).eq('id', id));
+  } else {
+    ({ error } = await sb.from('documentos').insert(payload));
+  }
+  if (error) { toast('Erro: ' + error.message, true); return; }
+  toast('✅ Documento salvo!');
+  closeModal('modal-editor-doc');
+  if (document.getElementById('page-documentos').classList.contains('active')) loadDocumentos();
+}
+
+function imprimirDocumento() {
+  const titulo = document.getElementById('editor-doc-titulo').value;
+  const conteudo = document.getElementById('editor-doc-content').innerHTML;
+  const win = window.open('', '_blank');
+  win.document.write('<html><head><title>' + titulo + '</title><style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;max-width:800px;margin:40px auto;padding:0 40px;}h1{font-size:16px;}@media print{body{margin:20px;}}</style></head><body>' + conteudo + '</body></html>');
+  win.document.close();
+  win.print();
+}
+
+function imprimirDocumentoView() {
+  const titulo = document.getElementById('view-doc-title').textContent;
+  const conteudo = document.getElementById('view-doc-content').innerHTML;
+  const win = window.open('', '_blank');
+  win.document.write('<html><head><title>' + titulo + '</title><style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;max-width:800px;margin:40px auto;padding:0 40px;}h1{font-size:16px;}@media print{body{margin:20px;}}</style></head><body>' + conteudo + '</body></html>');
+  win.document.close();
+  win.print();
+}
+
+async function visualizarDocumento(id) {
+  const { data } = await sb.from('documentos').select('*').eq('id', id).single();
+  if (!data) return;
+  document.getElementById('view-doc-title').textContent = data.titulo;
+  document.getElementById('view-doc-content').innerHTML = data.conteudo;
+  document.getElementById('view-doc-content').dataset.id = id;
+  openModal('modal-view-doc');
+}
+
+function editarDocumentoView() {
+  const id = document.getElementById('view-doc-content').dataset.id;
+  closeModal('modal-view-doc');
+  editarDocumento(id);
+}
+
+async function editarDocumento(id) {
+  const { data } = await sb.from('documentos').select('*').eq('id', id).single();
+  if (!data) return;
+  await abrirNovoDocumento(data.caso_id);
+  setTimeout(() => {
+    document.getElementById('editor-doc-id').value = data.id;
+    document.getElementById('editor-doc-titulo').value = data.titulo;
+    document.getElementById('editor-doc-tipo').value = data.tipo;
+    document.getElementById('editor-doc-caso').value = data.caso_id || '';
+    document.getElementById('editor-doc-content').innerHTML = data.conteudo;
+    document.getElementById('editor-doc-area').style.display = 'block';
+    document.getElementById('btn-imprimir-doc').style.display = 'inline-flex';
+    document.getElementById('btn-salvar-doc').style.display = 'inline-flex';
+    document.getElementById('editor-doc-title').textContent = 'Editar documento';
+  }, 100);
+}
+
+async function deletarDocumento(id, doCaso) {
+  if (!confirm('Excluir este documento?')) return;
+  await sb.from('documentos').delete().eq('id', id);
+  toast('Documento excluído.');
+  if (doCaso) {
+    loadCasoDocs(document.getElementById('caso-id').value);
+  } else {
+    loadDocumentos();
+  }
+}
+
+// ============================================================
+// DOCUMENTOS — página principal
+// ============================================================
+let allCasos = [];
+
+async function loadDocumentos() {
+  const list = document.getElementById('list-documentos');
+  list.innerHTML = '<div class="loading">carregando...</div>';
+  const tipo = document.getElementById('filtro-doc-tipo')?.value || '';
+  const casoId = document.getElementById('filtro-doc-caso')?.value || '';
+  let query = sb.from('documentos').select('*, casos(numero_processo)').order('created_at', { ascending: false });
+  if (tipo) query = query.eq('tipo', tipo);
+  if (casoId) query = query.eq('caso_id', casoId);
+  const { data } = await query;
+  // Preencher filtro de casos
+  if (!allCasos.length) {
+    const { data: cs } = await sb.from('casos').select('id, numero_processo').order('created_at', { ascending: false });
+    allCasos = cs || [];
+    const sel = document.getElementById('filtro-doc-caso');
+    if (sel) sel.innerHTML = '<option value="">Todos os casos</option>' + allCasos.map(c => '<option value="' + c.id + '">' + (c.numero_processo||'Sem nº') + '</option>').join('');
+  }
+  if (!data?.length) { list.innerHTML = '<div class="empty-state"><p>Nenhum documento ainda.</p></div>'; return; }
+  const icons = { honorarios:'📋', procuracao:'⚖️', hipossuficiencia:'📄', personalizado:'✏️' };
+  const tipoLabels = { honorarios:'Contrato de Honorários', procuracao:'Procuração', hipossuficiencia:'Dec. Hipossuficiência', personalizado:'Personalizado' };
+  list.innerHTML = '<div class="card">' + data.map(d =>
+    '<div class="doc-card">' +
+    '<span class="doc-card-icon">' + (icons[d.tipo]||'📄') + '</span>' +
+    '<div class="doc-card-info"><div class="doc-card-title">' + d.titulo + '</div>' +
+    '<div class="doc-card-sub">' + (tipoLabels[d.tipo]||d.tipo||'Documento') + (d.casos?.numero_processo?' · '+d.casos.numero_processo:'') + ' · ' + new Date(d.created_at).toLocaleDateString('pt-BR') + '</div></div>' +
+    '<div class="doc-card-actions">' +
+    '<button class="btn btn-sm btn-icon" onclick="visualizarDocumento('' + d.id + '')" title="Ver" style="color:var(--pink-dark);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>' +
+    '<button class="btn btn-sm btn-icon" onclick="editarDocumento('' + d.id + '')" title="Editar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>' +
+    '<button class="btn btn-sm btn-icon" onclick="deletarDocumento('' + d.id + '',false)" title="Excluir"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>' +
+    '</div></div>'
+  ).join('') + '</div>';
+}
+
 // ---- WHATSAPP ----
 function enviarWhatsApp() {
   const hoje = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'});
@@ -3946,6 +4400,30 @@ async function gerarRelatorioPDF() {
   thead th { padding:10px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#9CA3AF; text-align:left; border-bottom:2px solid #F9A8C9; }
   .footer { margin-top:32px; padding-top:12px; border-top:1px solid #F3F4F6; font-size:10px; color:#D1D5DB; text-align:center; }
   @media print { body { padding:16px; } }
+
+/* ===== EDITOR DE DOCUMENTO ===== */
+#editor-doc-content:focus { box-shadow: 0 0 0 2px var(--pink-mid); }
+#editor-doc-content h1 { font-size: 18px; font-weight: 700; text-align: center; margin-bottom: 8px; }
+#editor-doc-content p { margin-bottom: 10px; }
+.doc-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+}
+.doc-card:last-child { border-bottom: none; }
+.doc-card-icon { font-size: 24px; flex-shrink: 0; }
+.doc-card-info { flex: 1; }
+.doc-card-title { font-size: 14px; font-weight: 600; color: var(--gray-800); }
+.doc-card-sub { font-size: 12px; color: var(--gray-500); margin-top: 2px; }
+.doc-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+@media print {
+  body > *:not(#print-area) { display: none !important; }
+  #print-area { display: block !important; font-family: Georgia, serif; padding: 40px; }
+}
+
 </style>
 </head>
 <body>

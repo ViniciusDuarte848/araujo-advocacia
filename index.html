@@ -474,6 +474,7 @@ tbody tr:hover td{background:var(--pink-light);}
 .vencido-actions .btn { flex: 1; min-width: 100px; justify-content: center; font-size: 12px; }
 
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -685,8 +686,35 @@ tbody tr:hover td{background:var(--pink-light);}
             <div id="dash-casos"><div class="loading">carregando...</div></div>
           </div>
           <div class="card" style="margin-top:16px;">
-            <div class="card-header"><span class="card-title" style="text-transform:uppercase;">📊 Receita Mensal</span></div>
-            <canvas id="grafico-receita" style="width:100%;display:block;"></canvas>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+              <span class="card-title" style="text-transform:uppercase;margin:0;">📊 Receita Mensal</span>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <select id="grafico-modo" onchange="renderGraficoReceita()" style="padding:5px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+                  <option value="6meses">Últimos 6 meses</option>
+                  <option value="12meses">Últimos 12 meses</option>
+                  <option value="ano">Por ano</option>
+                  <option value="mes">Mês específico</option>
+                </select>
+                <select id="grafico-ano" onchange="renderGraficoReceita()" style="padding:5px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);display:none;">
+                  <option value="2026">2026</option>
+                  <option value="2025">2025</option>
+                  <option value="2024">2024</option>
+                </select>
+                <select id="grafico-mes" onchange="renderGraficoReceita()" style="padding:5px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);display:none;">
+                  <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+                  <option value="3">Março</option><option value="4">Abril</option>
+                  <option value="5">Maio</option><option value="6">Junho</option>
+                  <option value="7">Julho</option><option value="8">Agosto</option>
+                  <option value="9">Setembro</option><option value="10">Outubro</option>
+                  <option value="11">Novembro</option><option value="12">Dezembro</option>
+                </select>
+              </div>
+            </div>
+            <div id="grafico-loading" style="text-align:center;padding:20px;color:var(--gray-400);font-size:13px;display:none;">Carregando dados...</div>
+            <div style="position:relative;height:260px;">
+              <canvas id="grafico-receita"></canvas>
+            </div>
+            <div id="grafico-resumo" style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;"></div>
           </div>
         </div>
       </div>
@@ -3092,63 +3120,166 @@ async function loadCasosDoCliente(clienteId) {
 // ============================================================
 // GRÁFICO — Receita mensal (barras)
 // ============================================================
+let _graficoInstance = null;
+
 async function renderGraficoReceita() {
   const canvas = document.getElementById('grafico-receita');
   if (!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const meses = [];
+
+  const modo = document.getElementById('grafico-modo')?.value || '6meses';
+  const anoSel = document.getElementById('grafico-ano');
+  const mesSel = document.getElementById('grafico-mes');
+
+  // Mostrar/ocultar filtros conforme modo
+  if (anoSel) anoSel.style.display = (modo === 'ano' || modo === 'mes') ? 'block' : 'none';
+  if (mesSel) mesSel.style.display = modo === 'mes' ? 'block' : 'none';
+
+  // Definir período
   const hoje = new Date();
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
-    meses.push({ label: d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}), ano: d.getFullYear(), mes: d.getMonth() + 1 });
+  const periodos = [];
+
+  if (modo === '6meses') {
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      periodos.push({ label: d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}), ano: d.getFullYear(), mes: d.getMonth()+1, tipo:'mes' });
+    }
+  } else if (modo === '12meses') {
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+      periodos.push({ label: d.toLocaleDateString('pt-BR',{month:'short',year:'2-digit'}), ano: d.getFullYear(), mes: d.getMonth()+1, tipo:'mes' });
+    }
+  } else if (modo === 'ano') {
+    const ano = parseInt(anoSel?.value || hoje.getFullYear());
+    for (let m = 1; m <= 12; m++) {
+      const d = new Date(ano, m-1, 1);
+      periodos.push({ label: d.toLocaleDateString('pt-BR',{month:'short'}), ano, mes: m, tipo:'mes' });
+    }
+  } else if (modo === 'mes') {
+    const ano = parseInt(anoSel?.value || hoje.getFullYear());
+    const mes = parseInt(mesSel?.value || hoje.getMonth()+1);
+    // Mostrar por semana dentro do mês
+    const diasNoMes = new Date(ano, mes, 0).getDate();
+    const semanas = [
+      { label: '1-7', inicio: ano+'-'+String(mes).padStart(2,'0')+'-01', fim: ano+'-'+String(mes).padStart(2,'0')+'-07' },
+      { label: '8-14', inicio: ano+'-'+String(mes).padStart(2,'0')+'-08', fim: ano+'-'+String(mes).padStart(2,'0')+'-14' },
+      { label: '15-21', inicio: ano+'-'+String(mes).padStart(2,'0')+'-15', fim: ano+'-'+String(mes).padStart(2,'0')+'-21' },
+      { label: '22-'+diasNoMes, inicio: ano+'-'+String(mes).padStart(2,'0')+'-22', fim: ano+'-'+String(mes).padStart(2,'0')+'-'+diasNoMes },
+    ];
+    semanas.forEach(s => periodos.push({ ...s, tipo:'semana' }));
   }
-  const recebidos = [], pendentes = [];
-  for (const m of meses) {
-    const inicio = m.ano + '-' + String(m.mes).padStart(2,'0') + '-01';
-    const fim = m.ano + '-' + String(m.mes).padStart(2,'0') + '-31';
+
+  // Buscar dados do banco
+  const loading = document.getElementById('grafico-loading');
+  if (loading) loading.style.display = 'block';
+
+  const recebidos = [], pendentes = [], vencidos = [];
+  for (const p of periodos) {
+    const inicio = p.tipo === 'mes'
+      ? p.ano+'-'+String(p.mes).padStart(2,'0')+'-01'
+      : p.inicio;
+    const fim = p.tipo === 'mes'
+      ? p.ano+'-'+String(p.mes).padStart(2,'0')+'-'+new Date(p.ano,p.mes,0).getDate()
+      : p.fim;
     const { data } = await sb.from('financeiro').select('valor,status').gte('vencimento', inicio).lte('vencimento', fim);
-    recebidos.push((data||[]).filter(f=>f.status==='recebido').reduce((s,f)=>s+(parseFloat(f.valor)||0),0));
-    pendentes.push((data||[]).filter(f=>f.status!=='recebido').reduce((s,f)=>s+(parseFloat(f.valor)||0),0));
+    const d = data || [];
+    recebidos.push(d.filter(f=>f.status==='recebido').reduce((s,f)=>s+(parseFloat(f.valor)||0),0));
+    pendentes.push(d.filter(f=>f.status==='pendente').reduce((s,f)=>s+(parseFloat(f.valor)||0),0));
+    vencidos.push(d.filter(f=>f.status==='vencido').reduce((s,f)=>s+(parseFloat(f.valor)||0),0));
   }
-  // Desenhar gráfico simples
-  const W = canvas.width = canvas.offsetWidth || 400;
-  const H = canvas.height = 180;
-  const maxVal = Math.max(...recebidos, ...pendentes, 1);
-  const pad = { top: 20, right: 10, bottom: 40, left: 50 };
-  const chartW = W - pad.left - pad.right;
-  const chartH = H - pad.top - pad.bottom;
-  const barW = chartW / meses.length / 2.5;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#f8f8f8';
-  ctx.fillRect(0, 0, W, H);
-  // Eixo Y
-  ctx.strokeStyle = '#eee'; ctx.lineWidth = 1;
-  for (let i = 0; i <= 4; i++) {
-    const y = pad.top + chartH - (chartH * i / 4);
-    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
-    ctx.fillStyle = '#999'; ctx.font = '10px sans-serif'; ctx.textAlign = 'right';
-    ctx.fillText('R$' + ((maxVal * i / 4 / 1000).toFixed(0)) + 'k', pad.left - 4, y + 4);
-  }
-  meses.forEach((m, i) => {
-    const xCenter = pad.left + (i / meses.length) * chartW + chartW / meses.length / 2;
-    const hRec = (recebidos[i] / maxVal) * chartH;
-    const hPend = (pendentes[i] / maxVal) * chartH;
-    // Barra recebido (verde)
-    ctx.fillStyle = '#1D9E75';
-    ctx.fillRect(xCenter - barW - 2, pad.top + chartH - hRec, barW, hRec);
-    // Barra pendente (rosa)
-    ctx.fillStyle = '#C4728A';
-    ctx.fillRect(xCenter + 2, pad.top + chartH - hPend, barW, hPend);
-    // Label mês
-    ctx.fillStyle = '#666'; ctx.font = '10px sans-serif'; ctx.textAlign = 'center';
-    ctx.fillText(m.label, xCenter, H - 8);
+
+  if (loading) loading.style.display = 'none';
+
+  // Destruir instância anterior
+  if (_graficoInstance) { _graficoInstance.destroy(); _graficoInstance = null; }
+
+  // Criar gráfico Chart.js
+  _graficoInstance = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: periodos.map(p => p.label),
+      datasets: [
+        {
+          label: 'Recebido',
+          data: recebidos,
+          backgroundColor: 'rgba(29,158,117,0.85)',
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'Pendente',
+          data: pendentes,
+          backgroundColor: 'rgba(196,114,138,0.75)',
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'Vencido',
+          data: vencidos,
+          backgroundColor: 'rgba(239,68,68,0.7)',
+          borderRadius: 6,
+          borderSkipped: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 12 }, boxWidth: 12, padding: 16 } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              return ' ' + ctx.dataset.label + ': R$ ' + ctx.raw.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            },
+            footer: function(items) {
+              const total = items.reduce((s, i) => s + i.raw, 0);
+              return 'Total: R$ ' + total.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 11 }, color: '#888' }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(0,0,0,0.05)' },
+          ticks: {
+            font: { size: 11 },
+            color: '#888',
+            callback: function(val) {
+              if (val >= 1000) return 'R$' + (val/1000).toFixed(0) + 'k';
+              return 'R$' + val.toLocaleString('pt-BR');
+            }
+          }
+        }
+      }
+    }
   });
-  // Legenda
-  ctx.fillStyle = '#1D9E75'; ctx.fillRect(pad.left, H - 28, 10, 10);
-  ctx.fillStyle = '#555'; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
-  ctx.fillText('Recebido', pad.left + 14, H - 19);
-  ctx.fillStyle = '#C4728A'; ctx.fillRect(pad.left + 80, H - 28, 10, 10);
-  ctx.fillText('Pendente', pad.left + 94, H - 19);
+
+  // Resumo abaixo do gráfico
+  const totalRec = recebidos.reduce((s,v)=>s+v,0);
+  const totalPend = pendentes.reduce((s,v)=>s+v,0);
+  const totalVenc = vencidos.reduce((s,v)=>s+v,0);
+  const totalGeral = totalRec + totalPend + totalVenc;
+  const pct = totalGeral > 0 ? Math.round(totalRec/totalGeral*100) : 0;
+  const resumoDiv = document.getElementById('grafico-resumo');
+  if (resumoDiv) resumoDiv.innerHTML =
+    '<div style="flex:1;min-width:120px;background:#D1FAE5;border-radius:10px;padding:10px 14px;text-align:center;">' +
+      '<div style="font-size:11px;color:#065F46;font-weight:600;">RECEBIDO</div>' +
+      '<div style="font-size:15px;font-weight:700;color:#1D9E75;">R$ ' + totalRec.toLocaleString('pt-BR',{minimumFractionDigits:2}) + '</div></div>' +
+    '<div style="flex:1;min-width:120px;background:var(--pink-light);border-radius:10px;padding:10px 14px;text-align:center;">' +
+      '<div style="font-size:11px;color:var(--pink-dark);font-weight:600;">PENDENTE</div>' +
+      '<div style="font-size:15px;font-weight:700;color:var(--pink-dark);">R$ ' + totalPend.toLocaleString('pt-BR',{minimumFractionDigits:2}) + '</div></div>' +
+    '<div style="flex:1;min-width:120px;background:#FEE2E2;border-radius:10px;padding:10px 14px;text-align:center;">' +
+      '<div style="font-size:11px;color:#991B1B;font-weight:600;">VENCIDO</div>' +
+      '<div style="font-size:15px;font-weight:700;color:#EF4444;">R$ ' + totalVenc.toLocaleString('pt-BR',{minimumFractionDigits:2}) + '</div></div>' +
+    '<div style="flex:1;min-width:120px;background:#F3F4F6;border-radius:10px;padding:10px 14px;text-align:center;">' +
+      '<div style="font-size:11px;color:#374151;font-weight:600;">TAXA RECEBIMENTO</div>' +
+      '<div style="font-size:15px;font-weight:700;color:#374151;">' + pct + '%</div></div>';
 }
 
 // ---- WHATSAPP ----

@@ -871,13 +871,19 @@ tbody tr:hover td{background:var(--pink-light);}
       <input type="text" id="editor-doc-titulo" placeholder="Título do documento">
     </div>
     <div id="editor-doc-area" style="display:none;">
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding:8px;background:var(--pink-light);border-radius:8px;">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;padding:8px;background:var(--pink-light);border-radius:8px;align-items:center;">
         <button onclick="formatDoc('bold')" class="btn btn-sm btn-ghost"><b>N</b></button>
         <button onclick="formatDoc('italic')" class="btn btn-sm btn-ghost"><i>I</i></button>
         <button onclick="formatDoc('underline')" class="btn btn-sm btn-ghost"><u>S</u></button>
         <button onclick="formatDoc('justifyCenter')" class="btn btn-sm btn-ghost">≡</button>
         <button onclick="formatDoc('justifyFull')" class="btn btn-sm btn-ghost">▤</button>
         <button onclick="preencherDadosDoc()" class="btn btn-sm btn-outline" style="font-size:11px;">🔄 Preencher dados</button>
+        <span style="border-left:1px solid var(--border);height:20px;margin:0 2px;"></span>
+        <label class="btn btn-sm btn-ghost" style="cursor:pointer;font-size:11px;" title="Inserir logo no documento">
+          🖼️ Logo
+          <input type="file" accept="image/*" onchange="carregarLogo(this)" style="display:none;">
+        </label>
+        <button onclick="removerLogo()" class="btn btn-sm btn-ghost" style="font-size:11px;" title="Remover logo">✕ Logo</button>
       </div>
       <div id="editor-doc-content" contenteditable="true"
         style="min-height:360px;padding:24px 32px;border:1px solid var(--border-md);border-radius:8px;font-family:Georgia,serif;font-size:13px;line-height:1.8;background:#fff;outline:none;overflow-y:auto;max-height:50vh;">
@@ -3720,44 +3726,80 @@ async function preencherDadosDoc() {
   var vara = (caso && caso.vara) || '[VARA/TRIBUNAL]';
   var area = (caso && caso.area) || '[ÁREA]';
   var meta = currentUser && currentUser.user_metadata ? currentUser.user_metadata : {};
-  var advNome = meta.nome || 'Paula Araujo';
+  var advNome = meta.nome || '[NOME DO ADVOGADO]';
   var oab = meta.oab || '[OAB]';
+
+  // Logo (se existir no localStorage)
+  var logoHtml = '';
+  var logoSalva = localStorage.getItem('araujo_logo_b64');
+  if (logoSalva) {
+    logoHtml = '<div style="text-align:center;margin-bottom:16px;"><img src="' + logoSalva + '" style="max-height:80px;max-width:220px;object-fit:contain;"></div>';
+  }
+
   var html = '';
   var titulo = '';
-  if (tipo === 'honorarios') {
-    titulo = 'Contrato de Honorários — ' + nomeCliente;
-    html = '<h1 style="text-align:center;font-size:16px;font-weight:700;margin-bottom:4px;">CONTRATO DE PRESTAÇÃO DE SERVIÇOS ADVOCATÍCIOS</h1>' +
-      '<p style="text-align:center;font-size:11px;color:#888;margin-bottom:20px;">Contrato de Honorários Advocatícios</p>' +
-      '<p>Pelo presente instrumento particular, de um lado, <strong>' + nomeCliente + '</strong>, portador(a) do CPF/CNPJ nº <strong>' + cpfCliente + '</strong>, residente em <strong>' + endCliente + '</strong>, doravante denominado(a) <strong>CLIENTE</strong>;</p>' +
-      '<p>E de outro lado, <strong>' + advNome + '</strong>, advogado(a), inscrito(a) na OAB sob o nº <strong>' + oab + '</strong>, doravante denominado(a) <strong>ADVOGADO(A)</strong>;</p>' +
-      '<p><strong>CLÁUSULA 1ª — DO OBJETO</strong><br>O(A) ADVOGADO(A) obriga-se a prestar serviços de representação judicial na área de <strong>' + area + '</strong>, referente ao processo nº <strong>' + numProcesso + '</strong>, perante <strong>' + vara + '</strong>.</p>' +
-      '<p><strong>CLÁUSULA 2ª — DOS HONORÁRIOS</strong><br>Pelos serviços prestados, o CLIENTE pagará honorários no valor de R$ ____________, a serem pagos na forma: ________________________________.</p>' +
-      '<p><strong>CLÁUSULA 3ª — DA VIGÊNCIA</strong><br>O presente contrato vigorará enquanto durar o patrocínio da causa, podendo ser rescindido mediante comunicação prévia de 30 dias.</p>' +
-      '<p><strong>CLÁUSULA 4ª — DO FORO</strong><br>As partes elegem o foro da Comarca de Vitória/ES.</p>' +
-      '<p style="text-align:right;margin-top:20px;">Vitória/ES, ' + hoje + '</p>' +
-      '<div style="display:flex;justify-content:space-between;margin-top:48px;">' +
-      '<div style="text-align:center;width:45%;border-top:1px solid #333;padding-top:6px;">CLIENTE<br><small>' + nomeCliente + '</small></div>' +
-      '<div style="text-align:center;width:45%;border-top:1px solid #333;padding-top:6px;">ADVOGADO(A)<br><small>' + advNome + ' — OAB ' + oab + '</small></div></div>';
-  } else if (tipo === 'procuracao') {
+
+  if (tipo === 'procuracao') {
     titulo = 'Procuração — ' + nomeCliente;
-    html = '<h1 style="text-align:center;font-size:16px;font-weight:700;margin-bottom:20px;">PROCURAÇÃO AD JUDICIA ET EXTRA</h1>' +
-      '<p><strong>' + nomeCliente + '</strong>, portador(a) do CPF/CNPJ nº <strong>' + cpfCliente + '</strong>, residente em <strong>' + endCliente + '</strong>, nomeia e constitui seu bastante procurador(a):</p>' +
-      '<p><strong>' + advNome + '</strong>, advogado(a) inscrito(a) na OAB sob o nº <strong>' + oab + '</strong>;</p>' +
-      '<p>A quem confere <strong>amplos poderes</strong> para o foro em geral, com a cláusula <em>ad judicia et extra</em>, podendo propor as ações competentes, defender-se e substabelecer esta, especialmente para representar o(a) outorgante em ação de <strong>' + area + '</strong>.</p>' +
-      '<p style="text-align:right;margin-top:20px;">Vitória/ES, ' + hoje + '</p>' +
-      '<div style="text-align:center;margin-top:48px;border-top:1px solid #333;padding-top:6px;width:60%;margin-left:auto;margin-right:auto;">OUTORGANTE<br><small>' + nomeCliente + ' — CPF/CNPJ: ' + cpfCliente + '</small></div>';
+    html = logoHtml +
+      '<h2 style="text-align:center;font-size:15px;font-weight:700;margin-bottom:20px;letter-spacing:1px;">PROCURAÇÃO</h2>' +
+      '<p>Prezado(a) cliente, por meio deste documento de procuração você está concedendo poderes específicos para o(a) advogado(a) <strong>' + advNome + '</strong>, inscrito(a) na OAB/ES sob o nº <strong>' + oab + '</strong>, representar seus interesses referente ao processo nº <strong>' + numProcesso + '</strong> perante <strong>' + vara + '</strong>.</p>' +
+      '<p>Eu, <strong>' + nomeCliente + '</strong>, portador(a) do CPF/CNPJ nº <strong>' + cpfCliente + '</strong>, residente e domiciliado(a) em <strong>' + endCliente + '</strong>, pelo presente instrumento e na melhor forma de direito, nomeio e constituo como meu(minha) bastante procurador(a) o(a) advogado(a) acima qualificado(a), a quem confiro <strong>amplos poderes para o foro em geral</strong>, com a cláusula <em>ad judicia et extra</em>, em qualquer Juízo, Instância ou Tribunal, podendo propor contra quem de direito as ações competentes e defender-se das que forem propostas, podendo ainda substabelecer esta com ou sem reserva de iguais poderes, dar quitações e praticar todos os demais atos necessários ao fiel desempenho deste mandato, especialmente para atuação na área de <strong>' + area + '</strong>.</p>' +
+      '<p>Declaro estar ciente de que existem golpes envolvendo perfis falsos de advogados em plataformas digitais. Comprometo-me a confirmar qualquer solicitação de pagamento diretamente através dos canais oficiais do escritório antes de efetuar qualquer transferência.</p>' +
+      '<br>' +
+      '<p style="text-align:right;">Vitória/ES, ' + hoje + '</p>' +
+      '<br><br>' +
+      '<div style="text-align:center;width:70%;margin:0 auto;border-top:1px solid #333;padding-top:8px;">' +
+      'OUTORGANTE<br><strong>' + nomeCliente + '</strong><br>CPF/CNPJ: ' + cpfCliente + '</div>';
+
+  } else if (tipo === 'honorarios') {
+    titulo = 'Contrato de Honorários — ' + nomeCliente;
+    html = logoHtml +
+      '<h2 style="text-align:center;font-size:15px;font-weight:700;margin-bottom:6px;letter-spacing:1px;">CONTRATO DE SERVIÇOS E HONORÁRIOS ADVOCATÍCIOS</h2>' +
+      '<br>' +
+      '<p><strong>CLÁUSULA PRIMEIRA – DO OBJETO E ATIVIDADE</strong></p>' +
+      '<p>O objetivo deste contrato é dar suporte jurídico ao(à) cliente, atendendo suas necessidades legais, cabendo ao(à) advogado(a) a prestação de serviços advocatícios para defesa dos interesses do(a) CONTRATANTE referente a <strong>' + area + '</strong>, processo nº <strong>' + numProcesso + '</strong>, perante <strong>' + vara + '</strong>.</p>' +
+      '<p><strong>CLÁUSULA SEGUNDA – DOS HONORÁRIOS ADVOCATÍCIOS</strong></p>' +
+      '<p>Fica acordado entre as partes que a remuneração dos serviços constantes na Cláusula Primeira, o valor de R$ ____________ (___________________________), sendo a entrada de R$ ____________, a ser paga no dia ___/___/______, e o restante em ______ (______) parcelas de igual valor, nos dias ___ dos meses subsequentes, sendo o pagamento mediante recibo.</p>' +
+      '<p>Parágrafo primeiro – Em caso de êxito fica acordado o pagamento ao(à) advogado(a) de 20% (vinte por cento) do que o(a) CONTRATANTE vier a receber no final da ação.</p>' +
+      '<p>Parágrafo segundo – Havendo acordo entre o(a) CONTRATANTE e a parte contrária, tal fato não prejudicará o recebimento dos honorários contratados e da sucumbência.</p>' +
+      '<p>Parágrafo terceiro – Ao(à) CONTRATANTE caberá o eventual pagamento das custas e demais despesas processuais, se necessárias ao andamento da ação. Todas as despesas serão acompanhadas de comprovantes.</p>' +
+      '<p>Parágrafo quarto – Os honorários de condenação (sucumbência), se houver, pertencerão ao(à) advogado(a), sem exclusão dos aqui contratados, de conformidade com o art. 23 da Lei nº 8.906/94.</p>' +
+      '<p>Parágrafo quinto – As partes estabelecem que havendo atraso no pagamento dos honorários, serão cobrados juros de mora de 1% (um por cento) ao mês, acrescido de multa de 15% (quinze por cento), mais correção monetária.</p>' +
+      '<p><strong>CLÁUSULA TERCEIRA – GERAIS</strong></p>' +
+      '<p>Caso o(a) CONTRATANTE entenda por rescindir o presente contrato no curso da ação, permanecerá o dever de pagar os percentuais e valores ajustados na Cláusula Segunda.</p>' +
+      '<p>Parágrafo primeiro – O presente contrato abrange somente a prestação contida na cláusula primeira. Qualquer ação ou procedimento subsequente fica sujeito à celebração de novo contrato.</p>' +
+      '<p>Parágrafo segundo – Fica ciente o(a) CONTRATANTE que todas as comunicações relativas a este contrato deverão ser feitas por escrito, através dos canais oficiais do escritório.</p>' +
+      '<p>Parágrafo terceiro – Por meio deste contrato, o(a) CONTRATANTE declara consentimento expresso para que o(a) advogado(a) colete, trate e compartilhe dados necessários ao cumprimento do contrato, conforme a LGPD.</p>' +
+      '<p><strong>CLÁUSULA QUARTA – DA RESCISÃO</strong></p>' +
+      '<p>Caso o(a) CONTRATANTE desista por qualquer motivo da ação, será devido o valor de R$ ____________ a título de honorários advocatícios. O descumprimento do prazo de antecedência fará incidir multa equivalente ao valor de uma parcela.</p>' +
+      '<p><strong>CLÁUSULA QUINTA – DO TÍTULO EXECUTIVO E COBRANÇA</strong></p>' +
+      '<p>O presente contrato tem a qualidade de título executivo extrajudicial, nos termos do artigo 585, II do Código de Processo Civil, facultando ao(à) advogado(a) realizar a cobrança por todos os meios em Direito admitidos.</p>' +
+      '<p><strong>CLÁUSULA SEXTA – DO FORO</strong></p>' +
+      '<p>Fica eleito o foro da Comarca de Vitória/ES para dirimir quaisquer dúvidas concernentes ao presente instrumento.</p>' +
+      '<p>E, por estarem justos e contratados, assinam o presente contrato em duas vias de igual teor.</p>' +
+      '<p style="text-align:right;">Vitória/ES, ' + hoje + '</p>' +
+      '<br><br>' +
+      '<div style="display:flex;justify-content:space-between;margin-top:32px;gap:20px;">' +
+      '<div style="text-align:center;flex:1;border-top:1px solid #333;padding-top:8px;"><strong>' + nomeCliente + '</strong><br>CONTRATANTE<br>CPF/CNPJ: ' + cpfCliente + '</div>' +
+      '<div style="text-align:center;flex:1;border-top:1px solid #333;padding-top:8px;"><strong>' + advNome + '</strong><br>CONTRATADO(A)<br>OAB/ES ' + oab + '</div></div>';
+
   } else if (tipo === 'hipossuficiencia') {
     titulo = 'Dec. Hipossuficiência — ' + nomeCliente;
-    html = '<h1 style="text-align:center;font-size:16px;font-weight:700;margin-bottom:8px;">DECLARAÇÃO DE HIPOSSUFICIÊNCIA</h1>' +
+    html = logoHtml +
+      '<h2 style="text-align:center;font-size:15px;font-weight:700;margin-bottom:6px;">DECLARAÇÃO DE HIPOSSUFICIÊNCIA</h2>' +
       '<p style="text-align:center;font-size:12px;color:#666;margin-bottom:20px;">Art. 99, §3º do CPC — Lei 13.105/2015</p>' +
-      '<p>Eu, <strong>' + nomeCliente + '</strong>, portador(a) do CPF/CNPJ nº <strong>' + cpfCliente + '</strong>, residente em <strong>' + endCliente + '</strong>, DECLARO que <strong>não possuo condições financeiras de arcar com as custas do processo e os honorários advocatícios</strong>, sem prejuízo do sustento próprio e de minha família, requerendo a concessão dos benefícios da <strong>JUSTIÇA GRATUITA</strong>, nos termos do art. 98 e seguintes do CPC.</p>' +
+      '<p>Eu, <strong>' + nomeCliente + '</strong>, portador(a) do CPF/CNPJ nº <strong>' + cpfCliente + '</strong>, residente em <strong>' + endCliente + '</strong>, DECLARO que não possuo condições financeiras de arcar com as custas do processo e os honorários advocatícios, sem prejuízo do sustento próprio e de minha família, requerendo a concessão dos benefícios da <strong>JUSTIÇA GRATUITA</strong>, nos termos do art. 98 e seguintes do CPC.</p>' +
       '<p>Declaro estar ciente de que a falsidade desta declaração configura crime de litigância de má-fé.</p>' +
-      '<p style="text-align:right;margin-top:20px;">Vitória/ES, ' + hoje + '</p>' +
-      '<div style="text-align:center;margin-top:48px;border-top:1px solid #333;padding-top:6px;width:60%;margin-left:auto;margin-right:auto;"><small>' + nomeCliente + ' — CPF/CNPJ: ' + cpfCliente + '</small></div>';
+      '<p style="text-align:right;">Vitória/ES, ' + hoje + '</p>' +
+      '<br><br>' +
+      '<div style="text-align:center;width:70%;margin:0 auto;border-top:1px solid #333;padding-top:8px;"><strong>' + nomeCliente + '</strong><br>CPF/CNPJ: ' + cpfCliente + '</div>';
+
   } else {
     titulo = 'Documento — ' + hoje;
-    html = '<h1 style="text-align:center;font-size:16px;font-weight:700;margin-bottom:20px;">TÍTULO DO DOCUMENTO</h1><p>Digite o conteúdo aqui...</p>';
+    html = logoHtml + '<h2 style="text-align:center;font-size:15px;font-weight:700;margin-bottom:20px;">TÍTULO DO DOCUMENTO</h2><p>Digite o conteúdo aqui...</p>';
   }
+
   if (!document.getElementById('editor-doc-titulo').value) document.getElementById('editor-doc-titulo').value = titulo;
   document.getElementById('editor-doc-content').innerHTML = html;
   document.getElementById('editor-doc-area').style.display = 'block';
@@ -3787,20 +3829,58 @@ async function salvarDocumento() {
   if (document.getElementById('page-documentos') && document.getElementById('page-documentos').classList.contains('active')) loadDocumentos();
 }
 
+
+// ============================================================
+// LOGO NO DOCUMENTO
+// ============================================================
+function carregarLogo(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    localStorage.setItem('araujo_logo_b64', e.target.result);
+    toast('✅ Logo salva! Clique em "Preencher dados" para aplicar.');
+  };
+  reader.readAsDataURL(file);
+}
+
+function removerLogo() {
+  localStorage.removeItem('araujo_logo_b64');
+  // Remover logo do conteúdo atual se existir
+  var editor = document.getElementById('editor-doc-content');
+  var logoDiv = editor.querySelector('div[style*="text-align:center"] img');
+  if (logoDiv && logoDiv.parentNode) logoDiv.parentNode.remove();
+  toast('Logo removida.');
+}
+
+function _abrirJanelaImpressao(titulo, conteudo) {
+  var w = window.open('', '_blank');
+  w.document.write(
+    '<!DOCTYPE html><html><head><title>' + titulo + '</title>' +
+    '<style>' +
+    '@page { size: A4; margin: 2cm 2.5cm; }' +
+    'html, body { margin: 0; padding: 0; }' +
+    'body { font-family: Georgia, serif; font-size: 13px; line-height: 1.8; color: #000; }' +
+    'h1, h2 { font-size: 15px; }' +
+    'p { margin-bottom: 10px; text-align: justify; }' +
+    '</style>' +
+    '</head><body>' + conteudo + '</body></html>'
+  );
+  w.document.close();
+  w.focus();
+  setTimeout(function() { w.print(); }, 400);
+}
+
 function imprimirDocumento() {
   var t = document.getElementById('editor-doc-titulo').value;
   var c = document.getElementById('editor-doc-content').innerHTML;
-  var w = window.open('','_blank');
-  w.document.write('<html><head><title>'+t+'</title><style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;max-width:800px;margin:40px auto;padding:0 40px;}</style></head><body>'+c+'</body></html>');
-  w.document.close(); w.print();
+  _abrirJanelaImpressao(t, c);
 }
 
 function imprimirDocumentoView() {
   var t = document.getElementById('view-doc-title').textContent;
   var c = document.getElementById('view-doc-content').innerHTML;
-  var w = window.open('','_blank');
-  w.document.write('<html><head><title>'+t+'</title><style>body{font-family:Georgia,serif;font-size:13px;line-height:1.8;max-width:800px;margin:40px auto;padding:0 40px;}</style></head><body>'+c+'</body></html>');
-  w.document.close(); w.print();
+  _abrirJanelaImpressao(t, c);
 }
 
 async function visualizarDocumento(id) {

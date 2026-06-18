@@ -629,6 +629,10 @@ tbody tr:hover td{background:var(--pink-light);}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span>Documentos</span>
         </div>
+        <div class="nav-item" onclick="abrirAuditoria()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          <span>Auditoria</span>
+        </div>
         <div class="nav-item" onclick="showPage('links',this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           <span>Links Úteis</span>
@@ -1361,12 +1365,10 @@ async function authAction() {
     const oab = document.getElementById('auth-oab').value.trim();
     if (!nome) { msg.textContent = 'Informe seu nome completo.'; return; }
     if (tipo === 'advogado' && !oab) { msg.textContent = 'Informe o número da OAB.'; return; }
-    const redirectUrl = window.location.origin + window.location.pathname;
-    const { error } = await sb.auth.signUp({ email, password: pass, options: { emailRedirectTo: redirectUrl, data: { nome, tipo, oab: tipo === 'advogado' ? oab : '' } } });
+    // Acesso restrito — apenas por convite do administrador
     btn.textContent = 'Criar conta'; btn.disabled = false;
-    if (error) { msg.textContent = error.message; return; }
-    msg.style.color = 'var(--teal)';
-    msg.textContent = '✅ Conta criada! Verifique sua caixa de entrada (e spam) para confirmar o e-mail antes de entrar.';
+    msg.style.color = 'var(--pink-dark)';
+    msg.innerHTML = '🔒 Acesso restrito ao escritório.<br>Solicite acesso ao administrador do sistema.';
   }
 }
 function toggleAuthMode() {
@@ -1684,8 +1686,11 @@ async function salvarCliente() {
 }
 async function deleteCliente(id) {
   if (!confirm('Excluir este cliente?')) return;
+  const { data: _audCli } = await sb.from('clientes').select('nome,documento').eq('id', id).single();
   const { error } = await sb.from('clientes').delete().eq('id', id);
+  if (!error) registrarAuditoria('financeiro','excluir',id,'Lançamento excluído: '+(_audFin?.descricao||'')+' '+fmtMoney(_audFin?.valor||0),_audFin,null);
   if (error) { toast('Erro ao excluir.', true); return; }
+  registrarAuditoria('clientes','excluir',id,'Cliente excluído',null,null);
   toast('Cliente excluído.'); loadClientes(); loadDashboardMetrics();
 }
 
@@ -1780,8 +1785,10 @@ async function salvarCaso() {
 }
 async function deleteCaso(id) {
   if (!confirm('Excluir este caso?')) return;
+  const { data: _audCaso } = await sb.from('casos').select('numero_processo,area').eq('id', id).single();
   const { error } = await sb.from('casos').delete().eq('id', id);
   if (error) { toast('Erro ao excluir.', true); return; }
+  registrarAuditoria('casos','excluir',id,'Caso excluído',null,null);
   toast('Caso excluído.'); loadCasos();
 }
 
@@ -2064,6 +2071,7 @@ function renderFinanceiro(items) {
 
 async function marcarRecebido(id, statusAtual) {
   const novoStatus = statusAtual === 'recebido' ? 'pendente' : 'recebido';
+  const { data: _audAntes1 } = await sb.from('financeiro').select('descricao,valor,status').eq('id', id).single();
   const { error } = await sb.from('financeiro').update({ status: novoStatus }).eq('id', id);
   if (error) { toast('Erro ao atualizar.', true); return; }
   toast(novoStatus === 'recebido' ? 'Marcado como recebido!' : 'Marcado como pendente.');
@@ -2158,12 +2166,14 @@ async function salvarFinanceiro() {
   }
   const { error } = await sb.from('financeiro').insert(registros);
   if (error) { toast('Erro: ' + error.message, true); return; }
+  registrarAuditoria('financeiro','criar',null,registros.length+' lançamento(s) criado(s): '+desc,null,{registros:registros.length});
   toast(`${registros.length} lançamento(s) salvo(s)!`);
   closeModal('modal-financeiro'); loadFinanceiro(); loadDashboardMetrics(); loadDashAlertas();
 }
 
 async function deleteFinanceiro(id) {
   if (!confirm('Excluir este lançamento?')) return;
+  const { data: _audFin } = await sb.from('financeiro').select('*').eq('id', id).single();
   const { error } = await sb.from('financeiro').delete().eq('id', id);
   if (error) { toast('Erro ao excluir.', true); return; }
   toast('Excluído.'); loadFinanceiro();
@@ -2692,6 +2702,7 @@ async function confirmarConcluido() {
   const id = document.getElementById('resolucao-id').value;
   await sb.from('agenda').update({ status: 'concluido' }).eq('id', id);
   closeModal('modal-resolucao');
+  registrarAuditoria('agenda','concluir',id,'Compromisso concluído',null,{status:'concluido'});
   toast('✅ Compromisso concluído! Movido para o histórico.');
   loadAgenda(); loadNotificacoes();
 }
@@ -2726,6 +2737,7 @@ async function confirmarReagendar() {
   });
   if (error) { toast('Erro ao reagendar: ' + error.message, true); return; }
   closeModal('modal-resolucao');
+  registrarAuditoria('agenda','reagendar',id,'Compromisso reagendado para '+novaData,null,{nova_data:novaData});
   toast('🔄 Reagendado! Novo compromisso criado na data escolhida.');
   loadAgenda(); loadNotificacoes();
 }
@@ -2819,6 +2831,85 @@ function fecharVencidosPorHoje() {
   const amanha = new Date(); amanha.setDate(amanha.getDate() + 1);
   localStorage.setItem(VENCIDOS_SNOOZE_KEY, amanha.toISOString().split('T')[0]);
   closeModal('modal-vencido');
+}
+
+
+// ============================================================
+// AUDITORIA — registro de todas as ações importantes
+// ============================================================
+async function registrarAuditoria(tabela, acao, registroId, descricao, dadosAntes, dadosDepois) {
+  try {
+    const nomeUser = currentUser?.user_metadata?.nome || currentUser?.email || 'Desconhecido';
+    await sb.from('auditoria').insert({
+      user_id: currentUser?.id,
+      user_nome: nomeUser,
+      tabela,
+      acao,
+      registro_id: registroId || null,
+      descricao,
+      dados_antes: dadosAntes ? JSON.stringify(dadosAntes) : null,
+      dados_depois: dadosDepois ? JSON.stringify(dadosDepois) : null
+    });
+  } catch(e) {
+    console.warn('Auditoria não registrada:', e.message);
+  }
+}
+
+// ============================================================
+// PAINEL MASTER — aba de auditoria
+// ============================================================
+async function loadAuditoria(filtroTabela, filtroAcao) {
+  const list = document.getElementById('auditoria-list');
+  if (!list) return;
+  list.innerHTML = '<div class="loading">carregando...</div>';
+
+  let query = sb.from('auditoria')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(200);
+
+  if (filtroTabela) query = query.eq('tabela', filtroTabela);
+  if (filtroAcao) query = query.eq('acao', filtroAcao);
+
+  const { data, error } = await query;
+  if (error || !data?.length) {
+    list.innerHTML = '<div class="empty-state"><p>Nenhum registro de auditoria ainda.</p></div>';
+    return;
+  }
+
+  const acaoBadge = {
+    criar: '<span style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">✅ Criou</span>',
+    editar: '<span style="background:#FEF3C7;color:#92400E;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">✏️ Editou</span>',
+    excluir: '<span style="background:#FEE2E2;color:#991B1B;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">🗑️ Excluiu</span>',
+    receber: '<span style="background:#D1FAE5;color:#065F46;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">💰 Recebeu</span>',
+    concluir: '<span style="background:#EFF6FF;color:#1D4ED8;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">✅ Concluiu</span>',
+    reagendar: '<span style="background:#F3F4F6;color:#374151;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;">🔄 Reagendou</span>',
+  };
+
+  const tabelaIcon = { financeiro:'💰', agenda:'📅', clientes:'👤', casos:'⚖️', documentos:'📄' };
+
+  list.innerHTML = data.map(a => {
+    const dt = new Date(a.created_at);
+    const dataHora = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+    return `<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:12px;align-items:flex-start;">
+      <span style="font-size:20px;flex-shrink:0;">${tabelaIcon[a.tabela]||'📋'}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+          ${acaoBadge[a.acao]||'<span style="background:#F3F4F6;padding:2px 8px;border-radius:20px;font-size:11px;">'+a.acao+'</span>'}
+          <span style="font-size:12px;color:var(--gray-600);">${a.descricao||''}</span>
+        </div>
+        <div style="font-size:11px;color:var(--gray-400);">
+          👤 ${a.user_nome||'—'} &nbsp;·&nbsp; 🕐 ${dataHora}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+function abrirAuditoria() {
+  openModal('modal-auditoria');
+  loadAuditoria('', '');
 }
 
 // ---- WHATSAPP ----

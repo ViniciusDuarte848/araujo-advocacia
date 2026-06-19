@@ -694,6 +694,33 @@ tbody tr:hover td{background:var(--pink-light);}
             <div id="dash-casos"><div class="loading">carregando...</div></div>
           </div>
         </div>
+        <!-- GRÁFICO RECEITA -->
+        <div class="card" style="margin-top:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+            <span class="card-title" style="margin:0;text-transform:uppercase;">📊 Receita Mensal</span>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;">
+              <select id="grafico-modo" onchange="renderGraficoReceita()" style="padding:5px 8px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+                <option value="6meses">Últimos 6 meses</option>
+                <option value="12meses">Últimos 12 meses</option>
+                <option value="ano">Por ano</option>
+                <option value="mes">Mês específico</option>
+              </select>
+              <select id="grafico-ano" onchange="renderGraficoReceita()" style="padding:5px 8px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);display:none;">
+                <option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option>
+              </select>
+              <select id="grafico-mes" onchange="renderGraficoReceita()" style="padding:5px 8px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);display:none;">
+                <option value="1">Jan</option><option value="2">Fev</option><option value="3">Mar</option>
+                <option value="4">Abr</option><option value="5">Mai</option><option value="6">Jun</option>
+                <option value="7">Jul</option><option value="8">Ago</option><option value="9">Set</option>
+                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
+              </select>
+            </div>
+          </div>
+          <div style="position:relative;height:220px;">
+            <canvas id="grafico-receita"></canvas>
+          </div>
+          <div id="grafico-resumo" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
+        </div>
       </div>
 
       <!-- CLIENTES -->
@@ -2912,6 +2939,40 @@ function abrirAuditoria() {
   loadAuditoria('', '');
 }
 
+
+async function checkVencidosFin() {
+  const snooze = localStorage.getItem('vencidos_fin_snooze');
+  const hoje = new Date().toISOString().split('T')[0];
+  if (snooze && snooze >= hoje) return;
+  const { data } = await sb.from('financeiro')
+    .select('*, clientes(nome, telefone)')
+    .neq('status', 'recebido')
+    .lt('vencimento', hoje)
+    .order('vencimento');
+  if (!data?.length) return;
+  const list = document.getElementById('vencidos-fin-list');
+  if (!list) return;
+  list.innerHTML = data.map(f => {
+    const diasAtras = Math.round((new Date() - new Date(f.vencimento + 'T12:00:00')) / 86400000);
+    const tel = f.clientes?.telefone;
+    const waLink = tel ? gerarLinkWhatsApp(tel, f.clientes?.nome, f.descricao, f.valor, f.vencimento) : null;
+    return '<div class="vencido-card">' +
+      '<div class="vencido-card-title">' + f.descricao + '</div>' +
+      '<div class="vencido-card-sub">' + (f.clientes?.nome||'') + ' · ' + fmtMoney(f.valor) + ' · venc. ' + fmtDate(f.vencimento) + ' (' + diasAtras + ' dia' + (diasAtras>1?'s':'') + ' atrás)</div>' +
+      '<div class="vencido-actions" style="margin-top:8px;">' +
+      '<button class="btn btn-sm" style="background:#1D9E75;color:#fff;" onclick="marcarRecebido(\'' + f.id + '\',\'' + f.status + '\');this.closest(\'.vencido-card\').remove();">✅ Recebido</button>' +
+      (waLink ? '<a href="' + waLink + '" target="_blank" class="btn btn-sm btn-outline" style="color:#25D366;border-color:#25D366;">💬 WhatsApp</a>' : '') +
+      '</div></div>';
+  }).join('');
+  openModal('modal-vencidos-fin');
+}
+
+function snoozeVencidosFin() {
+  const amanha = new Date(); amanha.setDate(amanha.getDate() + 1);
+  localStorage.setItem('vencidos_fin_snooze', amanha.toISOString().split('T')[0]);
+  closeModal('modal-vencidos-fin');
+}
+
 // ---- WHATSAPP ----
 function enviarWhatsApp() {
   const hoje = new Date().toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'});
@@ -3638,6 +3699,97 @@ ${items.length === 0 ? '<p style="color:#9CA3AF;font-size:13px;">Nenhum lançame
 </table>`}` : ''}
 
 <div class="footer">Araujo Advocacia — Documento gerado automaticamente pelo sistema interno</div>
+
+<!-- MODAL AUDITORIA -->
+<div class="modal-backdrop" id="modal-auditoria">
+  <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title">🔍 Auditoria do Sistema</span>
+      <button class="modal-close" onclick="closeModal('modal-auditoria')">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <select id="audit-filtro-tabela" onchange="loadAuditoria(this.value, document.getElementById('audit-filtro-acao').value)"
+        style="padding:6px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+        <option value="">Todas as áreas</option>
+        <option value="financeiro">💰 Financeiro</option>
+        <option value="agenda">📅 Agenda</option>
+        <option value="clientes">👤 Clientes</option>
+        <option value="casos">⚖️ Casos</option>
+        <option value="documentos">📄 Documentos</option>
+      </select>
+      <select id="audit-filtro-acao" onchange="loadAuditoria(document.getElementById('audit-filtro-tabela').value, this.value)"
+        style="padding:6px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+        <option value="">Todas as ações</option>
+        <option value="criar">✅ Criou</option>
+        <option value="editar">✏️ Editou</option>
+        <option value="excluir">🗑️ Excluiu</option>
+        <option value="receber">💰 Recebeu</option>
+        <option value="concluir">✅ Concluiu</option>
+        <option value="reagendar">🔄 Reagendou</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="loadAuditoria('','')">🔄 Atualizar</button>
+    </div>
+    <div class="card" style="margin:0;padding:0;max-height:60vh;overflow-y:auto;">
+      <div id="auditoria-list"><div class="loading">carregando...</div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL AUDITORIA -->
+<div class="modal-backdrop" id="modal-auditoria">
+  <div class="modal" style="max-width:700px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-header">
+      <span class="modal-title">🔍 Auditoria do Sistema</span>
+      <button class="modal-close" onclick="closeModal('modal-auditoria')">✕</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+      <select id="audit-filtro-tabela" onchange="loadAuditoria(this.value, document.getElementById('audit-filtro-acao').value)"
+        style="padding:6px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+        <option value="">Todas as áreas</option>
+        <option value="financeiro">💰 Financeiro</option>
+        <option value="agenda">📅 Agenda</option>
+        <option value="clientes">👤 Clientes</option>
+        <option value="casos">⚖️ Casos</option>
+        <option value="documentos">📄 Documentos</option>
+      </select>
+      <select id="audit-filtro-acao" onchange="loadAuditoria(document.getElementById('audit-filtro-tabela').value, this.value)"
+        style="padding:6px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+        <option value="">Todas as ações</option>
+        <option value="criar">✅ Criou</option>
+        <option value="editar">✏️ Editou</option>
+        <option value="excluir">🗑️ Excluiu</option>
+        <option value="receber">💰 Recebeu</option>
+        <option value="concluir">✅ Concluiu</option>
+        <option value="reagendar">🔄 Reagendou</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="loadAuditoria('','')">🔄 Atualizar</button>
+    </div>
+    <div class="card" style="margin:0;padding:0;">
+      <div id="auditoria-list"><div class="loading">carregando...</div></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL VENCIDOS FINANCEIRO -->
+<div class="modal-backdrop" id="modal-vencidos-fin">
+  <div class="modal" style="max-width:460px;">
+    <div class="modal-header">
+      <span class="modal-title">🚨 Pagamentos em atraso</span>
+      <button class="modal-close" onclick="closeModal('modal-vencidos-fin')">✕</button>
+    </div>
+    <div style="padding:0.5rem 0 0;">
+      <p style="font-size:13px;color:var(--gray-600);margin-bottom:14px;">Lançamentos vencidos e não recebidos:</p>
+      <div id="vencidos-fin-list" style="max-height:55vh;overflow-y:auto;"></div>
+    </div>
+    <div class="modal-footer" style="margin-top:8px;gap:8px;">
+      <button class="btn btn-ghost" onclick="snoozeVencidosFin()">Lembrar amanhã</button>
+      <button class="btn btn-pink" onclick="closeModal('modal-vencidos-fin');showPage('financeiro',null)">Ver financeiro →</button>
+    </div>
+  </div>
+</div>
+
 </body></html>`;
 
   // Usar iframe oculto para evitar bloqueio de popup

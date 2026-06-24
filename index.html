@@ -722,9 +722,8 @@ tbody tr:hover td{background:var(--pink-light);}
           </div>
           <div id="grafico-resumo" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
         </div>
-      </div>
 
-        <!-- CARD NOTÍCIAS JURÍDICAS -->
+        <!-- NOTÍCIAS JURÍDICAS -->
         <div class="card" style="margin-top:16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
             <span class="card-title" style="text-transform:uppercase;margin:0;">📰 Notícias Jurídicas</span>
@@ -734,6 +733,8 @@ tbody tr:hover td{background:var(--pink-light);}
             <div class="loading">carregando notícias...</div>
           </div>
         </div>
+
+      </div>
 
       <!-- CLIENTES -->
       <div class="page" id="page-clientes">
@@ -3784,19 +3785,39 @@ async function gerarRelatorioPDF() {
 .noticias-scroll::-webkit-scrollbar-track { background: var(--pink-light); border-radius: 4px; }
 .noticias-scroll::-webkit-scrollbar-thumb { background: var(--pink-mid); border-radius: 4px; }
 .noticia-item {
-  padding: 10px 12px;
+  padding: 10px 14px;
   background: var(--white);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  border-left: 3px solid var(--pink-mid);
+  border-radius: 0 8px 8px 0;
   cursor: pointer;
-  transition: box-shadow .15s, transform .15s;
+  transition: all .15s;
   text-decoration: none;
   display: block;
+  box-shadow: 0 1px 4px rgba(0,0,0,.05);
 }
-.noticia-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); transform: translateY(-1px); }
-.noticia-fonte { font-size: 10px; font-weight: 700; color: var(--pink-dark); text-transform: uppercase; margin-bottom: 3px; }
-.noticia-titulo { font-size: 13px; font-weight: 600; color: var(--gray-800); line-height: 1.4; margin-bottom: 3px; }
-.noticia-data { font-size: 11px; color: var(--gray-400); }
+.noticia-item:hover {
+  border-left-color: var(--pink-dark);
+  background: var(--pink-light);
+  transform: translateX(3px);
+}
+.noticia-fonte {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pink-dark);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  margin-bottom: 3px;
+}
+.noticia-titulo {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gray-800);
+  line-height: 1.4;
+  margin-bottom: 3px;
+  text-decoration: none;
+}
+.noticia-item:hover .noticia-titulo { color: var(--pink-dark); }
+.noticia-data { font-size: 10px; color: var(--gray-400); }
 
 
 /* ===== MODAL AJUDA ===== */

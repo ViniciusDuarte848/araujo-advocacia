@@ -630,10 +630,6 @@ tbody tr:hover td{background:var(--pink-light);}
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
           <span>Documentos</span>
         </div>
-        <div class="nav-item" onclick="abrirAuditoria()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-          <span>Auditoria</span>
-        </div>
         <div class="nav-item" onclick="showPage('links',this)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           <span>Links Úteis</span>
@@ -695,32 +691,27 @@ tbody tr:hover td{background:var(--pink-light);}
             <div id="dash-casos"><div class="loading">carregando...</div></div>
           </div>
         </div>
-        <!-- GRÁFICO RECEITA -->
+        <!-- RELATÓRIO MENSAL -->
         <div class="card" style="margin-top:16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-            <span class="card-title" style="margin:0;text-transform:uppercase;">📊 Receita Mensal</span>
-            <div style="display:flex;gap:6px;flex-wrap:wrap;">
-              <select id="grafico-modo" onchange="renderGraficoReceita()" style="padding:5px 8px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
-                <option value="6meses">Últimos 6 meses</option>
-                <option value="12meses">Últimos 12 meses</option>
-                <option value="ano">Por ano</option>
-                <option value="mes">Mês específico</option>
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+            <span class="card-title" style="margin:0;text-transform:uppercase;">📊 Relatório Mensal</span>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <select id="relatorio-mes" onchange="loadRelatorioMensal()" style="padding:5px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
+                <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+                <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+                <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+                <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
               </select>
-              <select id="grafico-ano" onchange="renderGraficoReceita()" style="padding:5px 8px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);display:none;">
+              <select id="relatorio-ano" onchange="loadRelatorioMensal()" style="padding:5px 10px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);">
                 <option value="2026">2026</option><option value="2025">2025</option><option value="2024">2024</option>
               </select>
-              <select id="grafico-mes" onchange="renderGraficoReceita()" style="padding:5px 8px;border:1px solid var(--border-md);border-radius:8px;font-size:12px;background:var(--white);display:none;">
-                <option value="1">Jan</option><option value="2">Fev</option><option value="3">Mar</option>
-                <option value="4">Abr</option><option value="5">Mai</option><option value="6">Jun</option>
-                <option value="7">Jul</option><option value="8">Ago</option><option value="9">Set</option>
-                <option value="10">Out</option><option value="11">Nov</option><option value="12">Dez</option>
-              </select>
+              <button class="btn btn-pink btn-sm" onclick="gerarRelatorioPDF()" style="font-size:12px;">
+                🖨️ Gerar PDF
+              </button>
             </div>
           </div>
-          <div style="position:relative;height:220px;">
-            <canvas id="grafico-receita"></canvas>
-          </div>
-          <div id="grafico-resumo" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;"></div>
+          <div id="relatorio-cards" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;"></div>
+          <div id="relatorio-detalhes" style="font-size:13px;color:var(--gray-600);"></div>
         </div>
 
         <!-- NOTÍCIAS JURÍDICAS -->
@@ -729,9 +720,12 @@ tbody tr:hover td{background:var(--pink-light);}
             <span class="card-title" style="text-transform:uppercase;margin:0;">📰 Notícias Jurídicas</span>
             <button class="btn btn-ghost btn-sm" onclick="loadNoticias()" title="Atualizar">🔄</button>
           </div>
-          <div id="noticias-list" class="noticias-scroll">
-            <div class="loading">carregando notícias...</div>
+          <div class="noticias-ticker-wrap">
+            <div id="noticias-list" class="noticias-cards">
+              <div class="loading" style="padding:20px;">carregando notícias...</div>
+            </div>
           </div>
+          <div id="noticias-dots" class="noticia-nav"></div>
         </div>
 
       </div>
@@ -1566,6 +1560,13 @@ async function initApp() {
   finTodos = false;
   finAtualizarLabel();
   await Promise.all([loadDashboardMetrics(), loadCalendario(), loadDashCasos(), loadDashAlertas()]);
+  // Inicializar relatório com mês atual
+  const _agora = new Date();
+  const _mesSel = document.getElementById('relatorio-mes');
+  const _anoSel = document.getElementById('relatorio-ano');
+  if (_mesSel) _mesSel.value = String(_agora.getMonth() + 1);
+  if (_anoSel) _anoSel.value = String(_agora.getFullYear());
+  loadRelatorioMensal();
   iniciarSistemaPush();
 }
 
@@ -2315,16 +2316,15 @@ async function loadCalendario() {
   const inicio = `${calAno}-${mesStr}-01`;
   const lastDay = new Date(calAno, calMes + 1, 0).getDate();
   const fim = `${calAno}-${mesStr}-${String(lastDay).padStart(2, '0')}`;
-  const { data } = await sb.from('agenda')
-    .select('id, titulo, data, horario, tipo, clientes(nome)')
+  const { data: calRaw } = await sb.from('agenda')
+    .select('id, titulo, data, horario, tipo, status, clientes(nome)')
     .gte('data', inicio)
     .lte('data', fim)
     .order('data');
-  // normalizar datas para garantir formato YYYY-MM-DD
-  calData = (data || []).map(e => ({
-    ...e,
-    data: e.data ? e.data.substring(0, 10) : e.data
-  }));
+  // Só mostrar pendentes no calendário
+  calData = (calRaw || [])
+    .filter(e => !e.status || e.status === 'pendente')
+    .map(e => ({ ...e, data: e.data ? e.data.substring(0, 10) : e.data }));
   renderCal();
 }
 
@@ -2999,69 +2999,227 @@ function abrirAjuda() {
 // ============================================================
 async function loadNoticias() {
   const list = document.getElementById('noticias-list');
+  const dots = document.getElementById('noticias-dots');
   if (!list) return;
-  list.innerHTML = '<div class="loading">carregando notícias...</div>';
+  list.innerHTML = '<div class="loading" style="padding:20px;">carregando...</div>';
 
-  // Notícias estáticas curadas (fallback confiável sem CORS)
-  // Em produção futura: integrar com API de RSS proxy
   const noticias = [
-    {
-      fonte: 'CNJ',
-      titulo: 'CNJ lança painel de monitoramento de processos judiciais em tempo real',
-      data: 'Jun 2026',
-      url: 'https://www.cnj.jus.br/noticias/'
-    },
-    {
-      fonte: 'STJ',
-      titulo: 'STJ reafirma prazo decadencial de 10 anos para ações revisionais de contratos bancários',
-      data: 'Jun 2026',
-      url: 'https://www.stj.jus.br/sites/portalp/Paginas/Comunicacao/Noticias.aspx'
-    },
-    {
-      fonte: 'STF',
-      titulo: 'Supremo define tese sobre responsabilidade civil do Estado em casos de omissão',
-      data: 'Jun 2026',
-      url: 'https://portal.stf.jus.br/noticias/'
-    },
-    {
-      fonte: 'TST',
-      titulo: 'TST consolida entendimento sobre horas extras em regime de teletrabalho',
-      data: 'Jun 2026',
-      url: 'https://www.tst.jus.br/noticias'
-    },
-    {
-      fonte: 'OAB/ES',
-      titulo: 'OAB Espírito Santo realiza evento sobre LGPD e advocacia digital',
-      data: 'Jun 2026',
-      url: 'https://www.oabes.org.br/noticias'
-    },
-    {
-      fonte: 'Legislação',
-      titulo: 'Nova lei regulamenta honorários advocatícios em contratos com o poder público',
-      data: 'Jun 2026',
-      url: 'https://www.planalto.gov.br/ccivil_03/leis/'
-    },
-    {
-      fonte: 'TJES',
-      titulo: 'Tribunal de Justiça do ES implementa novo sistema de distribuição de processos',
-      data: 'Jun 2026',
-      url: 'https://www.tjes.jus.br/noticias/'
-    },
-    {
-      fonte: 'INSS',
-      titulo: 'INSS atualiza tabela de benefícios previdenciários para 2026',
-      data: 'Jun 2026',
-      url: 'https://www.gov.br/inss/pt-br/noticias'
-    }
+    { fonte:'CNJ', emoji:'⚖️', titulo:'CNJ lança painel de monitoramento de processos judiciais em tempo real', url:'https://www.cnj.jus.br/noticias/' },
+    { fonte:'STJ', emoji:'🏛️', titulo:'STJ reafirma prazo de 10 anos para revisão de contratos bancários', url:'https://www.stj.jus.br/sites/portalp/Paginas/Comunicacao/Noticias.aspx' },
+    { fonte:'STF', emoji:'⚖️', titulo:'Supremo define tese sobre responsabilidade civil do Estado em omissão', url:'https://portal.stf.jus.br/noticias/' },
+    { fonte:'TST', emoji:'👷', titulo:'TST consolida entendimento sobre horas extras em teletrabalho', url:'https://www.tst.jus.br/noticias' },
+    { fonte:'OAB/ES', emoji:'📋', titulo:'OAB/ES realiza evento sobre LGPD e advocacia digital em Vitória', url:'https://www.oabes.org.br/noticias' },
+    { fonte:'TJES', emoji:'🏢', titulo:'TJES implementa novo sistema de distribuição eletrônica de processos', url:'https://www.tjes.jus.br/noticias/' },
+    { fonte:'INSS', emoji:'🛡️', titulo:'INSS atualiza tabela de benefícios previdenciários para 2026', url:'https://www.gov.br/inss/pt-br/noticias' },
+    { fonte:'Planalto', emoji:'📜', titulo:'Nova lei regulamenta honorários advocatícios com o poder público', url:'https://www.planalto.gov.br/ccivil_03/leis/' },
   ];
 
-  list.innerHTML = noticias.map(n =>
-    '<a class="noticia-item" href="' + n.url + '" target="_blank" rel="noopener">' +
-    '<div class="noticia-fonte">' + n.fonte + '</div>' +
-    '<div class="noticia-titulo">' + n.titulo + '</div>' +
-    '<div class="noticia-data">' + n.data + '</div>' +
-    '</a>'
+  list.innerHTML = noticias.map(function(n) {
+    return '<a class="noticia-card" href="' + n.url + '" target="_blank" rel="noopener">' +
+      '<div class="noticia-card-img">' + n.emoji + '</div>' +
+      '<div class="noticia-card-body">' +
+      '<div class="noticia-card-fonte">' + n.fonte + '</div>' +
+      '<div class="noticia-card-titulo">' + n.titulo + '</div>' +
+      '</div></a>';
+  }).join('');
+
+  // Dots de navegação
+  if (dots) {
+    dots.innerHTML = noticias.map(function(_, i) {
+      return '<div class="noticia-dot' + (i===0?' active':'') + '" onclick="scrollNoticia(' + i + ')"></div>';
+    }).join('');
+  }
+
+  // Auto-scroll
+  var idx = 0;
+  setInterval(function() {
+    idx = (idx + 1) % noticias.length;
+    scrollNoticia(idx);
+  }, 4000);
+}
+
+function scrollNoticia(idx) {
+  var list = document.getElementById('noticias-list');
+  var dots = document.getElementById('noticias-dots');
+  if (!list) return;
+  var cards = list.querySelectorAll('.noticia-card');
+  if (cards[idx]) {
+    list.scrollTo({ left: cards[idx].offsetLeft - 12, behavior: 'smooth' });
+  }
+  if (dots) {
+    dots.querySelectorAll('.noticia-dot').forEach(function(d, i) {
+      d.classList.toggle('active', i === idx);
+    });
+  }
+}
+
+
+// ============================================================
+// RELATÓRIO MENSAL
+// ============================================================
+async function loadRelatorioMensal() {
+  const mes = parseInt(document.getElementById('relatorio-mes')?.value || new Date().getMonth() + 1);
+  const ano = parseInt(document.getElementById('relatorio-ano')?.value || new Date().getFullYear());
+  const cards = document.getElementById('relatorio-cards');
+  const detalhes = document.getElementById('relatorio-detalhes');
+  if (!cards) return;
+
+  const mesStr = String(mes).padStart(2, '0');
+  const inicio = ano + '-' + mesStr + '-01';
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const fim = ano + '-' + mesStr + '-' + String(ultimoDia).padStart(2, '0');
+
+  cards.innerHTML = '<div class="loading">carregando...</div>';
+
+  // Buscar dados em paralelo
+  const [finResp, agendaResp, clientesResp, casosResp] = await Promise.all([
+    sb.from('financeiro').select('valor,status,descricao,vencimento,clientes(nome)').gte('vencimento', inicio).lte('vencimento', fim),
+    sb.from('agenda').select('titulo,data,tipo,status').gte('data', inicio).lte('data', fim),
+    sb.from('clientes').select('id,created_at').gte('created_at', inicio + 'T00:00:00').lte('created_at', fim + 'T23:59:59'),
+    sb.from('casos').select('id,created_at').gte('created_at', inicio + 'T00:00:00').lte('created_at', fim + 'T23:59:59')
+  ]);
+
+  const fins = finResp.data || [];
+  const agenda = agendaResp.data || [];
+  const novosClientes = clientesResp.data || [];
+  const novosCasos = casosResp.data || [];
+
+  const totalRecebido = fins.filter(f => f.status === 'recebido').reduce((s, f) => s + (parseFloat(f.valor) || 0), 0);
+  const totalPendente = fins.filter(f => f.status === 'pendente').reduce((s, f) => s + (parseFloat(f.valor) || 0), 0);
+  const totalVencido = fins.filter(f => f.status === 'vencido').reduce((s, f) => s + (parseFloat(f.valor) || 0), 0);
+  const totalGeral = totalRecebido + totalPendente + totalVencido;
+  const taxa = totalGeral > 0 ? Math.round(totalRecebido / totalGeral * 100) : 0;
+  const compromissosConcluidos = agenda.filter(a => a.status === 'concluido').length;
+  const compromissosTotal = agenda.length;
+
+  const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mes-1];
+
+  cards.innerHTML = [
+    { label:'RECEBIDO', valor: fmtMoney(totalRecebido), cor:'#D1FAE5', textCor:'#1D9E75', icon:'💰' },
+    { label:'PENDENTE', valor: fmtMoney(totalPendente), cor:'var(--pink-light)', textCor:'var(--pink-dark)', icon:'⏳' },
+    { label:'VENCIDO', valor: fmtMoney(totalVencido), cor:'#FEE2E2', textCor:'#EF4444', icon:'⚠️' },
+    { label:'TAXA', valor: taxa + '%', cor:'#EFF6FF', textCor:'#1D4ED8', icon:'📈' },
+    { label:'NOVOS CLIENTES', valor: novosClientes.length, cor:'#F0FDF4', textCor:'#16A34A', icon:'👤' },
+    { label:'NOVOS CASOS', valor: novosCasos.length, cor:'#FEF9C3', textCor:'#854D0E', icon:'⚖️' },
+    { label:'COMPROMISSOS', valor: compromissosConcluidos + '/' + compromissosTotal, cor:'#F3F4F6', textCor:'#374151', icon:'📅' },
+  ].map(c =>
+    '<div style="flex:1;min-width:100px;background:' + c.cor + ';border-radius:10px;padding:10px 14px;text-align:center;">' +
+    '<div style="font-size:16px;margin-bottom:4px;">' + c.icon + '</div>' +
+    '<div style="font-size:10px;font-weight:700;color:' + c.textCor + ';letter-spacing:.5px;">' + c.label + '</div>' +
+    '<div style="font-size:15px;font-weight:700;color:' + c.textCor + ';margin-top:2px;">' + c.valor + '</div>' +
+    '</div>'
   ).join('');
+
+  // Detalhes dos lançamentos
+  if (fins.length) {
+    detalhes.innerHTML =
+      '<div style="font-size:12px;font-weight:700;color:var(--gray-600);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border);">Lançamentos de ' + nomeMes + '/' + ano + '</div>' +
+      fins.slice(0, 8).map(f =>
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;">' +
+        '<span style="color:var(--gray-700);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + f.descricao + (f.clientes?.nome ? ' — ' + f.clientes.nome : '') + '</span>' +
+        '<span style="font-weight:600;margin-left:12px;flex-shrink:0;color:' + (f.status==='recebido'?'#1D9E75':f.status==='vencido'?'#EF4444':'var(--pink-dark)') + ';">' + fmtMoney(f.valor) + '</span>' +
+        '</div>'
+      ).join('') +
+      (fins.length > 8 ? '<div style="font-size:11px;color:var(--gray-400);padding-top:6px;">+ ' + (fins.length-8) + ' lançamentos. Veja o PDF completo.</div>' : '');
+  } else {
+    detalhes.innerHTML = '<div style="font-size:13px;color:var(--gray-400);padding:12px 0;">Nenhum lançamento em ' + nomeMes + '/' + ano + '.</div>';
+  }
+}
+
+async function gerarRelatorioPDF() {
+  const mes = parseInt(document.getElementById('relatorio-mes')?.value || new Date().getMonth() + 1);
+  const ano = parseInt(document.getElementById('relatorio-ano')?.value || new Date().getFullYear());
+  const mesStr = String(mes).padStart(2, '0');
+  const inicio = ano + '-' + mesStr + '-01';
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const fim = ano + '-' + mesStr + '-' + String(ultimoDia).padStart(2, '0');
+  const nomeMes = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'][mes-1];
+
+  const [finResp, agendaResp, clientesResp, casosResp] = await Promise.all([
+    sb.from('financeiro').select('valor,status,descricao,vencimento,parcela_info,clientes(nome)').gte('vencimento', inicio).lte('vencimento', fim).order('vencimento'),
+    sb.from('agenda').select('titulo,data,horario,tipo,status').gte('data', inicio).lte('data', fim).order('data'),
+    sb.from('clientes').select('nome,created_at').gte('created_at', inicio + 'T00:00:00').lte('created_at', fim + 'T23:59:59'),
+    sb.from('casos').select('numero_processo,area,created_at').gte('created_at', inicio + 'T00:00:00').lte('created_at', fim + 'T23:59:59')
+  ]);
+
+  const fins = finResp.data || [];
+  const agenda = agendaResp.data || [];
+  const novosClientes = clientesResp.data || [];
+  const novosCasos = casosResp.data || [];
+
+  const totalRec = fins.filter(f=>f.status==='recebido').reduce((s,f)=>s+(parseFloat(f.valor)||0),0);
+  const totalPend = fins.filter(f=>f.status==='pendente').reduce((s,f)=>s+(parseFloat(f.valor)||0),0);
+  const totalVenc = fins.filter(f=>f.status==='vencido').reduce((s,f)=>s+(parseFloat(f.valor)||0),0);
+  const totalGeral = totalRec+totalPend+totalVenc;
+  const taxa = totalGeral>0?Math.round(totalRec/totalGeral*100):0;
+
+  const hoje = new Date().toLocaleDateString('pt-BR');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Relatório ' + nomeMes + ' ' + ano + '</title>' +
+    '<style>' +
+    '@page{size:A4;margin:0}' +
+    'body{font-family:Arial,sans-serif;font-size:12px;color:#222;margin:2cm 2.5cm;line-height:1.6;}' +
+    'h1{font-size:18px;font-weight:700;margin-bottom:4px;}' +
+    'h2{font-size:13px;font-weight:700;margin:20px 0 8px;padding-bottom:4px;border-bottom:2px solid #C4728A;color:#C4728A;}' +
+    '.cards{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}' +
+    '.card{flex:1;min-width:80px;padding:10px;border-radius:8px;text-align:center;}' +
+    '.card-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}' +
+    '.card-val{font-size:15px;font-weight:700;margin-top:2px;}' +
+    'table{width:100%;border-collapse:collapse;font-size:11px;}' +
+    'th{background:#f5f5f5;padding:6px 8px;text-align:left;font-weight:700;border-bottom:1px solid #ddd;}' +
+    'td{padding:5px 8px;border-bottom:1px solid #eee;}' +
+    '.rec{color:#1D9E75;font-weight:600;}.pend{color:#C4728A;font-weight:600;}.venc{color:#EF4444;font-weight:600;}' +
+    '.footer{margin-top:30px;font-size:10px;color:#999;text-align:center;border-top:1px solid #eee;padding-top:10px;}' +
+    '</style></head><body>';
+
+  html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;">' +
+    '<div><h1>Relatório Mensal — ' + nomeMes + ' ' + ano + '</h1>' +
+    '<div style="font-size:11px;color:#888;">Gerado em ' + hoje + ' · Araujo Advocacia</div></div></div>';
+
+  html += '<h2>📊 Resumo Financeiro</h2>';
+  html += '<div class="cards">' +
+    '<div class="card" style="background:#D1FAE5;"><div class="card-label" style="color:#065F46;">Recebido</div><div class="card-val" style="color:#1D9E75;">' + fmtMoney(totalRec) + '</div></div>' +
+    '<div class="card" style="background:#FCE7F3;"><div class="card-label" style="color:#9D174D;">Pendente</div><div class="card-val" style="color:#C4728A;">' + fmtMoney(totalPend) + '</div></div>' +
+    '<div class="card" style="background:#FEE2E2;"><div class="card-label" style="color:#991B1B;">Vencido</div><div class="card-val" style="color:#EF4444;">' + fmtMoney(totalVenc) + '</div></div>' +
+    '<div class="card" style="background:#EFF6FF;"><div class="card-label" style="color:#1E40AF;">Taxa</div><div class="card-val" style="color:#1D4ED8;">' + taxa + '%</div></div>' +
+    '</div>';
+
+  if (fins.length) {
+    html += '<h2>💰 Lançamentos do Mês</h2><table><tr><th>Descrição</th><th>Cliente</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr>';
+    fins.forEach(function(f) {
+      var cls = f.status==='recebido'?'rec':f.status==='vencido'?'venc':'pend';
+      html += '<tr><td>' + f.descricao + (f.parcela_info?' ('+f.parcela_info+')':'') + '</td><td>' + (f.clientes?.nome||'—') + '</td><td>' + fmtDate(f.vencimento) + '</td><td><span class="' + cls + '">' + fmtMoney(f.valor) + '</span></td><td><span class="' + cls + '">' + f.status + '</span></td></tr>';
+    });
+    html += '</table>';
+  }
+
+  if (agenda.length) {
+    html += '<h2>📅 Compromissos do Mês</h2><table><tr><th>Título</th><th>Data</th><th>Tipo</th><th>Status</th></tr>';
+    agenda.forEach(function(a) {
+      html += '<tr><td>' + a.titulo + '</td><td>' + fmtDate(a.data) + (a.horario?' '+a.horario.substring(0,5):'') + '</td><td>' + (a.tipo||'—') + '</td><td>' + (a.status||'pendente') + '</td></tr>';
+    });
+    html += '</table>';
+  }
+
+  if (novosClientes.length) {
+    html += '<h2>👤 Novos Clientes</h2><table><tr><th>Nome</th><th>Data de cadastro</th></tr>';
+    novosClientes.forEach(function(c) { html += '<tr><td>' + c.nome + '</td><td>' + new Date(c.created_at).toLocaleDateString('pt-BR') + '</td></tr>'; });
+    html += '</table>';
+  }
+
+  if (novosCasos.length) {
+    html += '<h2>⚖️ Novos Casos</h2><table><tr><th>Nº Processo</th><th>Área</th></tr>';
+    novosCasos.forEach(function(c) { html += '<tr><td>' + (c.numero_processo||'Sem nº') + '</td><td>' + (c.area||'—') + '</td></tr>'; });
+    html += '</table>';
+  }
+
+  html += '<div class="footer">Araujo Advocacia — Sistema de Gestão Jurídica · Relatório gerado em ' + hoje + '</div>';
+  html += '</body></html>';
+
+  var w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function() { w.print(); }, 500);
 }
 
 // ---- WHATSAPP ----
@@ -3773,51 +3931,53 @@ async function gerarRelatorioPDF() {
 
 
 /* ===== PAINEL NOTÍCIAS JURÍDICAS ===== */
-.noticias-scroll {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  max-height: 280px;
-  overflow-y: auto;
-  padding-right: 4px;
+/* ===== NOTÍCIAS — CARROSSEL ===== */
+.noticias-ticker-wrap {
+  overflow: hidden;
+  position: relative;
+  background: var(--pink-light);
+  border-radius: 10px;
+  padding: 0;
 }
-.noticias-scroll::-webkit-scrollbar { width: 4px; }
-.noticias-scroll::-webkit-scrollbar-track { background: var(--pink-light); border-radius: 4px; }
-.noticias-scroll::-webkit-scrollbar-thumb { background: var(--pink-mid); border-radius: 4px; }
-.noticia-item {
-  padding: 10px 14px;
+.noticias-cards {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px;
+  scrollbar-width: none;
+}
+.noticias-cards::-webkit-scrollbar { display: none; }
+.noticia-card {
+  flex: 0 0 220px;
+  scroll-snap-align: start;
   background: var(--white);
-  border-left: 3px solid var(--pink-mid);
-  border-radius: 0 8px 8px 0;
-  cursor: pointer;
-  transition: all .15s;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,.07);
   text-decoration: none;
   display: block;
-  box-shadow: 0 1px 4px rgba(0,0,0,.05);
+  transition: transform .15s, box-shadow .15s;
+  cursor: pointer;
 }
-.noticia-item:hover {
-  border-left-color: var(--pink-dark);
-  background: var(--pink-light);
-  transform: translateX(3px);
+.noticia-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+.noticia-card-img {
+  width: 100%;
+  height: 100px;
+  object-fit: cover;
+  background: linear-gradient(135deg, var(--pink-light), var(--pink-mid));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
 }
-.noticia-fonte {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--pink-dark);
-  text-transform: uppercase;
-  letter-spacing: .5px;
-  margin-bottom: 3px;
-}
-.noticia-titulo {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--gray-800);
-  line-height: 1.4;
-  margin-bottom: 3px;
-  text-decoration: none;
-}
-.noticia-item:hover .noticia-titulo { color: var(--pink-dark); }
-.noticia-data { font-size: 10px; color: var(--gray-400); }
+.noticia-card-body { padding: 10px 12px; }
+.noticia-card-fonte { font-size: 10px; font-weight: 700; color: var(--pink-dark); text-transform: uppercase; margin-bottom: 4px; }
+.noticia-card-titulo { font-size: 12px; font-weight: 600; color: var(--gray-800); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.noticia-nav { display: flex; justify-content: center; gap: 6px; padding: 8px 0 4px; }
+.noticia-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pink-mid); cursor: pointer; transition: background .2s; }
+.noticia-dot.active { background: var(--pink-dark); }
 
 
 /* ===== MODAL AJUDA ===== */

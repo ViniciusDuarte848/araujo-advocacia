@@ -714,19 +714,7 @@ tbody tr:hover td{background:var(--pink-light);}
           <div id="relatorio-detalhes" style="font-size:13px;color:var(--gray-600);"></div>
         </div>
 
-        <!-- NOTÍCIAS JURÍDICAS -->
-        <div class="card" style="margin-top:16px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <span class="card-title" style="text-transform:uppercase;margin:0;">📰 Notícias Jurídicas</span>
-            <button class="btn btn-ghost btn-sm" onclick="loadNoticias()" title="Atualizar">🔄</button>
-          </div>
-          <div class="noticias-ticker-wrap">
-            <div id="noticias-list" class="noticias-cards">
-              <div class="loading" style="padding:20px;">carregando notícias...</div>
-            </div>
-          </div>
-          <div id="noticias-dots" class="noticia-nav"></div>
-        </div>
+
 
       </div>
 
@@ -3216,6 +3204,9 @@ async function gerarRelatorioPDF() {
   html += '<div class="footer">Araujo Advocacia — Sistema de Gestão Jurídica · Relatório gerado em ' + hoje + '</div>';
   html += '</body></html>';
 
+  // Fechar todos os modais antes de abrir PDF
+  document.querySelectorAll('.modal-backdrop.open').forEach(function(m) { m.classList.remove('open'); });
+
   var w = window.open('', '_blank');
   w.document.write(html);
   w.document.close();
@@ -3815,6 +3806,7 @@ async function openRelatorioModal() {
 }
 
 async function gerarRelatorioPDF() {
+  document.querySelectorAll('.modal-backdrop.open').forEach(function(m) { m.classList.remove('open'); });
   const dataIni   = document.getElementById('rel-data-ini')?.value || '';
   const dataFim   = document.getElementById('rel-data-fim')?.value || '';
   const status    = document.getElementById('rel-status')?.value || '';

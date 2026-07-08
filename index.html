@@ -3243,38 +3243,60 @@ async function gerarRelatorioPDF() {
 // ============================================================
 // CONVITE DE NOVO USUÁRIO
 // ============================================================
-function gerarConvite() {
+async function gerarConvite() {
   const nome = document.getElementById('convite-nome').value.trim();
   const email = document.getElementById('convite-email').value.trim();
   const tipo = document.getElementById('convite-tipo').value;
   const oab = document.getElementById('convite-oab').value.trim();
+  const resultado = document.getElementById('convite-resultado');
 
   if (!nome || !email) { toast('Preencha nome e e-mail.', true); return; }
   if (tipo === 'advogado' && !oab) { toast('Informe a OAB do advogado.', true); return; }
 
-  const tipoLabel = { advogado: 'Advogado(a)', estagiario: 'Estagiário(a)', assistente: 'Assistente' }[tipo];
-  const supabaseProjectUrl = SUPABASE_URL.replace('https://', '').split('.')[0];
-  const painelUrl = 'https://supabase.com/dashboard/project/' + supabaseProjectUrl + '/auth/users';
-
-  const resultado = document.getElementById('convite-resultado');
+  // Mostrar loading
   resultado.style.display = 'block';
-  resultado.innerHTML =
-    '<div style="font-weight:700;color:var(--pink-dark);margin-bottom:10px;">✅ Pronto! Siga os passos para liberar o acesso:</div>' +
-    '<div style="margin-bottom:8px;"><strong>1.</strong> Clique no botão abaixo para abrir o painel do Supabase</div>' +
-    '<a href="' + painelUrl + '" target="_blank" class="btn btn-pink btn-sm" style="margin-bottom:12px;display:inline-flex;">🔗 Abrir painel de usuários</a>' +
-    '<div style="margin-bottom:8px;"><strong>2.</strong> Clique em <strong>"Invite user"</strong></div>' +
-    '<div style="margin-bottom:8px;"><strong>3.</strong> Cole o e-mail abaixo:</div>' +
-    '<div style="background:var(--white);border:1px solid var(--border-md);border-radius:8px;padding:8px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
-      '<code style="font-size:13px;">' + email + '</code>' +
-      '<button class="btn btn-sm btn-ghost" onclick="navigator.clipboard.writeText(\'' + email + '\');toast(\'E-mail copiado!\')" style="font-size:11px;">📋 Copiar</button>' +
-    '</div>' +
-    '<div style="margin-bottom:8px;"><strong>4.</strong> Após convidar, ' + nome + ' receberá um e-mail para criar a senha</div>' +
-    '<div style="margin-bottom:8px;"><strong>5.</strong> Quando ela(e) acessar pela 1ª vez, peça para preencher o perfil (nome, função' + (tipo==='advogado'?', OAB':'') + ') na tela inicial</div>' +
-    '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--pink-mid);font-size:11px;color:var(--gray-500);">' +
-      '<strong>Dados para referência:</strong> ' + nome + ' · ' + tipoLabel + (oab ? ' · OAB ' + oab : '') +
-    '</div>';
+  resultado.innerHTML = '<div style="text-align:center;padding:16px;color:var(--gray-500);">⏳ Enviando convite...</div>';
 
-  registrarAuditoria('usuarios', 'criar', null, 'Convite gerado para: ' + nome + ' (' + email + ')', null, { nome, email, tipo, oab });
+  try {
+    const resp = await fetch(SUPABASE_URL + '/functions/v1/convidar-usuario', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ email, nome, tipo, oab })
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      resultado.innerHTML =
+        '<div style="color:#EF4444;font-weight:600;margin-bottom:8px;">❌ Erro ao enviar convite</div>' +
+        '<div style="font-size:13px;color:var(--gray-600);">' + (data.error || 'Tente novamente.') + '</div>';
+      return;
+    }
+
+    // Sucesso!
+    resultado.innerHTML =
+      '<div style="font-weight:700;color:#1D9E75;font-size:15px;margin-bottom:12px;">✅ Convite enviado com sucesso!</div>' +
+      '<div style="font-size:13px;color:var(--gray-700);margin-bottom:6px;">📧 Um e-mail foi enviado para <strong>' + email + '</strong></div>' +
+      '<div style="font-size:13px;color:var(--gray-600);margin-bottom:6px;">O link no e-mail vai direcionar ' + nome + ' para criar a própria senha e acessar o sistema.</div>' +
+      '<div style="margin-top:12px;padding:10px 14px;background:var(--white);border-radius:8px;border:1px solid var(--border);font-size:12px;color:var(--gray-500);">' +
+        '👤 <strong>' + nome + '</strong> · ' + ({advogado:'Advogado(a)',estagiario:'Estagiário(a)',assistente:'Assistente'}[tipo]) + (oab ? ' · OAB ' + oab : '') +
+      '</div>';
+
+    // Limpar campos
+    document.getElementById('convite-nome').value = '';
+    document.getElementById('convite-email').value = '';
+    document.getElementById('convite-oab').value = '';
+
+    registrarAuditoria('usuarios', 'criar', null, 'Convite enviado para: ' + nome + ' (' + email + ')', null, { nome, email, tipo, oab });
+
+  } catch(err) {
+    resultado.innerHTML =
+      '<div style="color:#EF4444;font-weight:600;">❌ Erro de conexão</div>' +
+      '<div style="font-size:13px;color:var(--gray-600);margin-top:6px;">Verifique sua conexão e tente novamente.</div>';
+  }
 }
 
 document.getElementById('convite-tipo')?.addEventListener('change', function() {

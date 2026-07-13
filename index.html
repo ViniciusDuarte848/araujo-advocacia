@@ -3228,7 +3228,29 @@ async function gerarRelatorioPDF() {
   }
 
   html += '<div class="footer">Araujo Advocacia — Sistema de Gestão Jurídica · Relatório gerado em ' + hoje + '</div>';
-  html += '</body></html>';
+  html += '
+<!-- TELA CRIAR SENHA (convite) -->
+<div id="screen-criar-senha">
+  <div style="background:#fff;border-radius:20px;padding:40px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.12);text-align:center;">
+    <img src="" id="logo-criar-senha" style="height:80px;margin-bottom:16px;" onerror="this.style.display='none'">
+    <div style="font-size:22px;font-weight:700;color:var(--gray-800);margin-bottom:6px;">Criar sua senha</div>
+    <div style="font-size:13px;color:var(--gray-500);margin-bottom:24px;">Bem-vindo(a)! Defina sua senha para acessar o sistema.</div>
+    <div class="form-group" style="text-align:left;margin-bottom:16px;">
+      <label>Nova senha</label>
+      <input type="password" id="nova-senha" placeholder="Mínimo 8 caracteres" style="width:100%;">
+    </div>
+    <div class="form-group" style="text-align:left;margin-bottom:24px;">
+      <label>Confirmar senha</label>
+      <input type="password" id="confirmar-senha" placeholder="Digite a senha novamente" style="width:100%;">
+    </div>
+    <div id="msg-criar-senha" style="font-size:13px;margin-bottom:12px;min-height:20px;"></div>
+    <button class="btn btn-pink" onclick="definirSenha()" style="width:100%;justify-content:center;font-size:15px;padding:12px;">
+      Entrar no sistema →
+    </button>
+  </div>
+</div>
+
+</body></html>';
 
   // Fechar todos os modais antes de abrir PDF
   document.querySelectorAll('.modal-backdrop.open').forEach(function(m) { m.classList.remove('open'); });
@@ -3302,6 +3324,68 @@ async function gerarConvite() {
 document.getElementById('convite-tipo')?.addEventListener('change', function() {
   document.getElementById('convite-oab-box').style.display = this.value === 'advogado' ? 'block' : 'none';
 });
+
+
+// ============================================================
+// DETECTAR CONVITE — mostrar tela de criar senha
+// ============================================================
+(async function verificarConvite() {
+  // Supabase coloca #access_token na URL quando vem de convite/reset
+  const hash = window.location.hash;
+  if (!hash) return;
+
+  const params = new URLSearchParams(hash.replace('#', '?'));
+  const tipo = params.get('type');
+  const accessToken = params.get('access_token');
+
+  if ((tipo === 'invite' || tipo === 'recovery') && accessToken) {
+    // Mostrar tela de criar senha
+    const tela = document.getElementById('screen-criar-senha');
+    if (tela) {
+      // Tentar colocar a logo do sistema
+      const logoEl = document.getElementById('logo-criar-senha');
+      const logoB64 = typeof _LOGO_SISTEMA !== 'undefined' ? _LOGO_SISTEMA : '';
+      if (logoEl && logoB64) logoEl.src = logoB64;
+      tela.classList.add('active');
+    }
+    // Esconder a tela de login
+    const auth = document.getElementById('auth-screen');
+    if (auth) auth.style.display = 'none';
+  }
+})();
+
+async function definirSenha() {
+  const senha = document.getElementById('nova-senha').value;
+  const confirmar = document.getElementById('confirmar-senha').value;
+  const msg = document.getElementById('msg-criar-senha');
+
+  if (!senha || senha.length < 8) {
+    msg.style.color = '#EF4444';
+    msg.textContent = 'A senha deve ter pelo menos 8 caracteres.';
+    return;
+  }
+  if (senha !== confirmar) {
+    msg.style.color = '#EF4444';
+    msg.textContent = 'As senhas não coincidem.';
+    return;
+  }
+
+  msg.style.color = 'var(--gray-500)';
+  msg.textContent = 'Salvando...';
+
+  const { error } = await sb.auth.updateUser({ password: senha });
+
+  if (error) {
+    msg.style.color = '#EF4444';
+    msg.textContent = '❌ Erro: ' + error.message;
+    return;
+  }
+
+  // Senha definida — limpar URL e entrar no sistema
+  window.location.hash = '';
+  document.getElementById('screen-criar-senha').classList.remove('active');
+  toast('✅ Senha criada com sucesso! Bem-vindo(a) ao sistema.');
+}
 
 // ---- WHATSAPP ----
 function enviarWhatsApp() {
@@ -3847,28 +3931,39 @@ document.addEventListener('DOMContentLoaded', function() {
 async function muExcluirUsuario() {
   if (!muCurrentUser) return;
   const nome = muCurrentUser.nome || muCurrentUser.email || 'este usuário';
-  if (!confirm('⚠️ Tem certeza que deseja EXCLUIR permanentemente "' + nome + '"?\n\nEsta ação não pode ser desfeita.')) return;
-  if (!confirm('Confirme novamente: excluir "' + nome + '" definitivamente?')) return;
+  if (!confirm('⚠️ Excluir "' + nome + '" permanentemente?\n\nO usuário perderá o acesso. Os dados que ele cadastrou serão mantidos.')) return;
 
   const uid = muCurrentUser.id;
 
-  // Passo 1: tentar deletar o registro de perfis
-  const { error: errDel } = await sb.from('perfis').delete().eq('id', uid);
+  try {
+    // Chamar Edge Function para remover do Supabase Auth
+    const resp = await fetch(SUPABASE_URL + '/functions/v1/excluir-usuario', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify({ userId: uid })
+    });
 
-  if (errDel) {
-    // RLS pode estar bloqueando o delete — marcar como excluido/inativo como fallback
-    console.warn('Delete bloqueado:', errDel.message);
-    const { error: errUpd } = await sb.from('perfis').update({ ativo: false, excluido: true }).eq('id', uid);
-    if (errUpd) { toast('Erro ao excluir: ' + errUpd.message, true); return; }
-    toast('⚠️ Acesso revogado! Para remoção total, rode no Supabase SQL: DELETE FROM perfis WHERE id = \'' + uid + '\'');
+    const data = await resp.json();
+
+    if (!resp.ok || data.error) {
+      toast('Erro ao excluir: ' + (data.error || 'Tente novamente.'), true);
+      return;
+    }
+
+    // Remover também da tabela de perfis
+    await sb.from('perfis').delete().eq('id', uid);
+
+    registrarAuditoria('usuarios', 'excluir', uid, 'Usuário excluído: ' + nome, { email: muCurrentUser.email }, null);
+    toast('✅ Usuário excluído com sucesso!');
     closeModal('modal-usuario');
     loadMaster();
-    return;
-  }
 
-  toast('✅ Usuário excluído permanentemente!');
-  closeModal('modal-usuario');
-  loadMaster();
+  } catch(err) {
+    toast('Erro de conexão: ' + err.message, true);
+  }
 }
 
 // ---- RELATÓRIO PDF FINANCEIRO ----
@@ -4072,6 +4167,18 @@ async function gerarRelatorioPDF() {
 .ajuda-info-desc { font-size: 12px; color: var(--gray-500); margin-top: 2px; line-height: 1.5; }
 .ajuda-badge { display: inline-block; background: var(--pink-light); color: var(--pink-dark); font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; margin-left: 6px; }
 
+
+/* ===== TELA CRIAR SENHA (convite) ===== */
+#screen-criar-senha {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, #fdf2f4 0%, #fff 100%);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+#screen-criar-senha.active { display: flex; }
 </style>
 </head>
 <body>

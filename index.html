@@ -3228,29 +3228,6 @@ async function gerarRelatorioPDF() {
   }
 
   html += '<div class="footer">Araujo Advocacia — Sistema de Gestão Jurídica · Relatório gerado em ' + hoje + '</div>';
-  html += '
-<!-- TELA CRIAR SENHA (convite) -->
-<div id="screen-criar-senha">
-  <div style="background:#fff;border-radius:20px;padding:40px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.12);text-align:center;">
-    <img src="" id="logo-criar-senha" style="height:80px;margin-bottom:16px;" onerror="this.style.display='none'">
-    <div style="font-size:22px;font-weight:700;color:var(--gray-800);margin-bottom:6px;">Criar sua senha</div>
-    <div style="font-size:13px;color:var(--gray-500);margin-bottom:24px;">Bem-vindo(a)! Defina sua senha para acessar o sistema.</div>
-    <div class="form-group" style="text-align:left;margin-bottom:16px;">
-      <label>Nova senha</label>
-      <input type="password" id="nova-senha" placeholder="Mínimo 8 caracteres" style="width:100%;">
-    </div>
-    <div class="form-group" style="text-align:left;margin-bottom:24px;">
-      <label>Confirmar senha</label>
-      <input type="password" id="confirmar-senha" placeholder="Digite a senha novamente" style="width:100%;">
-    </div>
-    <div id="msg-criar-senha" style="font-size:13px;margin-bottom:12px;min-height:20px;"></div>
-    <button class="btn btn-pink" onclick="definirSenha()" style="width:100%;justify-content:center;font-size:15px;padding:12px;">
-      Entrar no sistema →
-    </button>
-  </div>
-</div>
-
-</body></html>';
 
   // Fechar todos os modais antes de abrir PDF
   document.querySelectorAll('.modal-backdrop.open').forEach(function(m) { m.classList.remove('open'); });
@@ -4337,6 +4314,28 @@ ${items.length === 0 ? '<p style="color:#9CA3AF;font-size:13px;">Nenhum lançame
       <button class="btn btn-ghost" onclick="closeModal('modal-ajuda')">Fechar</button>
       <a href="https://wa.me/5527999999999" target="_blank" class="btn btn-pink">💬 Falar com suporte</a>
     </div>
+  </div>
+</div>
+
+
+<!-- TELA CRIAR SENHA (convite) -->
+<div id="screen-criar-senha">
+  <div style="background:#fff;border-radius:20px;padding:40px;max-width:420px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.12);text-align:center;">
+    <img src="" id="logo-criar-senha" style="height:80px;margin-bottom:16px;" onerror="this.style.display='none'">
+    <div style="font-size:22px;font-weight:700;color:var(--gray-800);margin-bottom:6px;">Criar sua senha</div>
+    <div style="font-size:13px;color:var(--gray-500);margin-bottom:24px;">Bem-vindo(a)! Defina sua senha para acessar o sistema.</div>
+    <div class="form-group" style="text-align:left;margin-bottom:16px;">
+      <label>Nova senha</label>
+      <input type="password" id="nova-senha" placeholder="Mínimo 8 caracteres" style="width:100%;">
+    </div>
+    <div class="form-group" style="text-align:left;margin-bottom:24px;">
+      <label>Confirmar senha</label>
+      <input type="password" id="confirmar-senha" placeholder="Digite a senha novamente" style="width:100%;">
+    </div>
+    <div id="msg-criar-senha" style="font-size:13px;margin-bottom:12px;min-height:20px;"></div>
+    <button class="btn btn-pink" onclick="definirSenha()" style="width:100%;justify-content:center;font-size:15px;padding:12px;">
+      Entrar no sistema →
+    </button>
   </div>
 </div>
 
